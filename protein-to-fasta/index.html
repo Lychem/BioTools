@@ -744,7 +744,9 @@
   function findLoop(text, keyPrefix) {
     // Escape the prefix for use in regex
     const escaped = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // (?![\s\S]) matches end-of-string so files without a trailing # / loop_ / data_ still work
+    // (?![\s\S]) is an end-of-string assertion: a negative lookahead that succeeds
+    // only when no characters remain. Plain $ would match every line-end with the m flag,
+    // so this trick is needed to handle files that have no trailing # / loop_ / data_.
     const re = new RegExp(`loop_\\s*((?:_\\S+\\s+)*${escaped}\\S*(?:\\s+_\\S+)*)([\\s\\S]*?)(?=loop_|^data_|^#|(?![\\s\\S]))`, 'im');
     const m = re.exec(text);
     if (!m) return null;
