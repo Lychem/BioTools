@@ -631,8 +631,12 @@
       }
     }
 
+    // Fallback: derive sequence from _atom_site coordinate records (CA atoms),
+    // mirroring the SEQRES-less fallback in parsePDB.
     if (entitySeq.size === 0) {
-      throw new Error('No sequence data found in CIF file. Expected _entity_poly or _entity_poly_seq data.');
+      const atomChains = parseCifAtomSite(text);
+      if (atomChains.length > 0) return atomChains;
+      throw new Error('No sequence data found in CIF file. Expected _entity_poly, _entity_poly_seq, or _atom_site data.');
     }
 
     // ── 2. Entity→chain map ───────────────────────────────────────
@@ -675,11 +679,73 @@
 
   /* ── CIF Helpers ──────────────────────────────────────────────── */
 
+  /**
+   * Fallback CIF sequence extraction from _atom_site coordinate records.
+   * Reads CA atoms (ATOM records only) and reconstructs per-chain sequences,
+   * exactly as parsePDB does for files that lack SEQRES records.
+   */
+  function parseCifAtomSite(text) {
+    const atomSiteLoop = findLoop(text, '_atom_site.');
+    if (!atomSiteLoop) return [];
+
+    const { columns, rows } = atomSiteLoop;
+
+    const groupIdx = findCol(columns, 'atom_site.group_pdb');
+    const atomIdx  = findCol(columns, 'atom_site.label_atom_id')
+                  ?? findCol(columns, 'atom_site.auth_atom_id');
+    const compIdx  = findCol(columns, 'atom_site.label_comp_id')
+                  ?? findCol(columns, 'atom_site.auth_comp_id');
+    const chainIdx = findCol(columns, 'atom_site.label_asym_id')
+                  ?? findCol(columns, 'atom_site.auth_asym_id');
+    const seqIdx   = findCol(columns, 'atom_site.label_seq_id')
+                  ?? findCol(columns, 'atom_site.auth_seq_id');
+    const insIdx   = findCol(columns, 'atom_site.pdbx_pdb_ins_code');
+
+    if (compIdx === null || chainIdx === null) return [];
+
+    // chainId → Map<resKey, resName>  (insertion-code–aware, preserves order)
+    const atomMap = new Map();
+
+    for (const row of rows) {
+      // Skip HETATM records
+      if (groupIdx !== null && row[groupIdx]?.toUpperCase() !== 'ATOM') continue;
+      // Keep only Cα atoms
+      if (atomIdx !== null && row[atomIdx] !== 'CA') continue;
+
+      const resName = row[compIdx];
+      const chainId = row[chainIdx];
+      if (!resName || !chainId || chainId === '.' || chainId === '?') continue;
+
+      const seqNum  = seqIdx  !== null ? row[seqIdx]  : '';
+      const insCode = (insIdx !== null && row[insIdx] && row[insIdx] !== '?')
+                    ? row[insIdx] : '';
+      const resKey  = seqNum + insCode;
+
+      if (!atomMap.has(chainId)) atomMap.set(chainId, new Map());
+      if (!atomMap.get(chainId).has(resKey)) {
+        atomMap.get(chainId).set(resKey, resName);
+      }
+    }
+
+    const entryId = extractCifValue(text, '_entry.id')
+                 || extractCifValue(text, '_struct.entry_id')
+                 || 'structure';
+
+    const chains = [];
+    for (const [chainId, resMap] of atomMap) {
+      const seq = [...resMap.values()].map(aa3to1).join('');
+      if (seq) chains.push({ header: `${entryId}|Chain_${chainId}`, seq, chainId });
+    }
+    return chains;
+  }
+
+
   /** Find a loop_ block that contains a given key prefix. */
   function findLoop(text, keyPrefix) {
     // Escape the prefix for use in regex
     const escaped = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(`loop_\\s*((?:_\\S+\\s+)*${escaped}\\S*(?:\\s+_\\S+)*)([\\s\\S]*?)(?=loop_|^data_|^#)`, 'im');
+    // (?![\s\S]) matches end-of-string so files without a trailing # / loop_ / data_ still work
+    const re = new RegExp(`loop_\\s*((?:_\\S+\\s+)*${escaped}\\S*(?:\\s+_\\S+)*)([\\s\\S]*?)(?=loop_|^data_|^#|(?![\\s\\S]))`, 'im');
     const m = re.exec(text);
     if (!m) return null;
 
