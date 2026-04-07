@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioTools — Biological Data Analysis Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f0f4f8;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 10px;
+      font-size: 1.05rem;
+      opacity: 0.85;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .tool-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .tool-card:hover {
+      border-color: #2563eb;
+      box-shadow: 0 4px 20px rgba(37,99,235,.15);
+      transform: translateY(-2px);
+    }
+
+    .tool-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .tool-card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .tool-card p {
+      font-size: 0.9rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .tool-tag {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-top: auto;
+      align-self: flex-start;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 16px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🧬 BioTools</h1>
+    <p>A collection of browser-based biological data analysis tools — no installation required.</p>
+  </header>
+
+  <main>
+    <p class="section-title">Available Tools</p>
+    <div class="tools-grid">
+
+      <a class="tool-card" href="protein-to-fasta/index.html">
+        <div class="tool-icon">🔬</div>
+        <h2>Protein Structure → FASTA</h2>
+        <p>Upload a PDB or mmCIF file and extract the amino-acid sequence as FASTA. Supports one-line and multi-line output.</p>
+        <span class="tool-tag">Structure</span>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>BioTools — runs entirely in your browser. No data is sent to any server.</footer>
+
+</body>
+</html>
