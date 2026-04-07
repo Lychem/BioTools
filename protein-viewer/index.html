@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protein Structure Viewer | BioTools</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:   #2563eb;
+      --blue-d: #1d4ed8;
+      --blue-l: #eff6ff;
+      --green:  #16a34a;
+      --red:    #dc2626;
+      --slate:  #64748b;
+      --bg:     #f0f4f8;
+      --card:   #ffffff;
+      --border: #e2e8f0;
+      --text:   #1e293b;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%);
+      color: #fff;
+      padding: 32px 24px 28px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .breadcrumb {
+      font-size: 0.82rem;
+      opacity: 0.75;
+      margin-bottom: 8px;
+    }
+    .breadcrumb a { color: inherit; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+    }
+    header p {
+      margin-top: 6px;
+      font-size: 0.95rem;
+      opacity: 0.82;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    main {
+      max-width: 1100px;
+      margin: 36px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 8px 18px;
+      border: none;
+      background: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      margin-bottom: -2px;
+      border-radius: 6px 6px 0 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--blue); }
+    .tab-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    /* ── Drop zone ──────────────────────────────────────── */
+    #drop-zone {
+      border: 2.5px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #f8fafc;
+    }
+    #drop-zone.drag-over {
+      border-color: var(--blue);
+      background: var(--blue-l);
+    }
+    #drop-zone.has-file {
+      border-color: var(--green);
+      background: #f0fdf4;
+    }
+    .dz-icon { font-size: 2.8rem; margin-bottom: 10px; line-height: 1; }
+    .dz-primary {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .dz-secondary { font-size: 0.85rem; color: var(--slate); }
+    .dz-file-name {
+      display: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+    #drop-zone.has-file .dz-file-name  { display: block; }
+    #drop-zone.has-file .dz-primary    { display: none; }
+    #drop-zone.has-file .dz-secondary  { display: none; }
+    #drop-zone.has-file .dz-icon       { display: none; }
+    #file-input { display: none; }
+
+    .upload-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 20px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .upload-btn:hover { background: var(--blue-d); }
+
+    /* ── PDB ID panel ────────────────────────────────────── */
+    #panel-pdb { display: none; }
+
+    .pdb-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #pdb-input {
+      flex: 1;
+      min-width: 160px;
+      max-width: 280px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #pdb-input:focus { border-color: var(--blue); }
+    #pdb-input::placeholder {
+      text-transform: none;
+      letter-spacing: normal;
+      font-weight: 400;
+      color: #94a3b8;
+    }
+
+    .pdb-hint {
+      font-size: 0.83rem;
+      color: var(--slate);
+      margin-top: 10px;
+    }
+    .pdb-hint code {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--blue-d);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .pdb-hint code:hover { background: var(--blue-l); }
+
+    /* ── Visualize button ────────────────────────────────── */
+    #visualize-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      letter-spacing: 0.2px;
+    }
+    #visualize-btn:hover:not(:disabled) { background: var(--blue-d); }
+    #visualize-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Error ───────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.9rem;
+    }
+
+    /* ── Viewer card ─────────────────────────────────────── */
+    #viewer-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .viewer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .viewer-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #structure-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* ── Mol* container ──────────────────────────────────── */
+    #mol-viewer {
+      width: 100%;
+      height: 600px;
+      position: relative;
+      background: #1a1a2e;
+    }
+
+    /* placeholder shown before a structure is loaded */
+    #viewer-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #94a3b8;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #viewer-placeholder.hidden { display: none; }
+    .placeholder-icon { font-size: 3.5rem; opacity: 0.4; }
+    .placeholder-text { font-size: 0.95rem; opacity: 0.6; }
+
+    /* loading spinner overlay */
+    #loading-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(26,26,46,0.78);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+      color: #e2e8f0;
+    }
+    #loading-overlay.active { display: flex; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 0.9rem; opacity: 0.8; }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 28px 16px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 600px) {
+      #mol-viewer { height: 420px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Protein Structure Viewer</p>
+      <h1>🔭 Protein Structure Viewer</h1>
+      <p>Visualize PDB and mmCIF protein structures interactively — entirely in your browser.</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ① Input -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-file" onclick="switchTab('file')">📂 Upload File</button>
+        <button class="tab-btn"        id="tab-pdb"  onclick="switchTab('pdb')">🔍 Fetch by PDB ID</button>
+      </div>
+
+      <!-- File upload panel -->
+      <div id="panel-file">
+        <div id="drop-zone"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+             onclick="document.getElementById('file-input').click()">
+          <div class="dz-icon">📂</div>
+          <p class="dz-primary">Drag &amp; drop your structure file here</p>
+          <p class="dz-secondary">Supported: .pdb, .cif, .mmcif, .ent</p>
+          <p class="dz-file-name" id="file-name-display"></p>
+          <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Browse file</button>
+          <input type="file" id="file-input" accept=".pdb,.cif,.mmcif,.ent" onchange="onFileSelected(event)" />
+        </div>
+      </div>
+
+      <!-- PDB ID panel -->
+      <div id="panel-pdb">
+        <div class="pdb-row">
+          <input type="text" id="pdb-input" placeholder="e.g. 1CRN or 4HHB"
+                 maxlength="8" oninput="onPdbInput()" onkeydown="if(event.key==='Enter') visualize()" />
+          <button class="upload-btn" onclick="visualize()" id="pdb-go-btn" style="margin-top:0">Load</button>
+        </div>
+        <p class="pdb-hint">
+          Examples:
+          <code onclick="setPdbId('1CRN')">1CRN</code>
+          <code onclick="setPdbId('4HHB')">4HHB</code>
+          <code onclick="setPdbId('7JVB')">7JVB</code>
+          <code onclick="setPdbId('1TIM')">1TIM</code>
+          <code onclick="setPdbId('6VXX')">6VXX</code>
+          — fetched from <a href="https://www.rcsb.org/" target="_blank" rel="noopener noreferrer"
+             style="color:var(--blue);text-decoration:none">RCSB PDB</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box"></div>
+
+    <!-- ② Visualize button -->
+    <button id="visualize-btn" disabled onclick="visualize()">② Visualize Structure</button>
+
+    <!-- ③ Viewer -->
+    <div class="card" id="viewer-card">
+      <div class="viewer-header">
+        <span class="viewer-title">③ 3D Viewer</span>
+        <span id="structure-label"></span>
+      </div>
+      <div style="position:relative">
+        <div id="mol-viewer">
+          <div id="viewer-placeholder">
+            <div class="placeholder-icon">🧬</div>
+            <div class="placeholder-text">Upload a file or enter a PDB ID to visualize a structure</div>
+          </div>
+        </div>
+        <div id="loading-overlay">
+          <div class="spinner"></div>
+          <div class="loading-text" id="loading-text">Loading structure…</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>Runs entirely in your browser — no data is ever uploaded to any server.
+    3D visualization powered by <a href="https://molstar.org/" target="_blank" rel="noopener noreferrer"
+      style="color:inherit">Mol*</a>.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js"></script>
+  <script>
+    /* ── State ─────────────────────────────────────────── */
+    let viewer      = null;
+    let pendingFile = null;   // { content: string, name: string, format: string }
+    let pendingPdb  = null;   // PDB ID string
+    let activeTab   = 'file';
+
+    /* ── Mol* viewer init ───────────────────────────────── */
+    async function initViewer() {
+      try {
+        viewer = await molstar.Viewer.create('mol-viewer', {
+          layoutIsExpanded:       false,
+          layoutShowControls:     false,
+          layoutShowRemoteState:  false,
+          layoutShowSequence:     true,
+          layoutShowLog:          false,
+          layoutShowLeftPanel:    false,
+          viewportShowExpand:     true,
+          viewportShowControls:   true,
+          viewportShowSettings:   false,
+          viewportShowSelectionMode: false,
+          viewportShowAnimation:  false,
+          pdbProvider:            'rcsb',
+          emdbProvider:           'rcsb',
+        });
+      } catch (e) {
+        showError('Failed to initialize 3D viewer: ' + e.message);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initViewer);
+
+    /* ── Tab switching ──────────────────────────────────── */
+    function switchTab(tab) {
+      activeTab = tab;
+      document.getElementById('tab-file').classList.toggle('active', tab === 'file');
+      document.getElementById('tab-pdb').classList.toggle('active', tab === 'pdb');
+      document.getElementById('panel-file').style.display = tab === 'file' ? '' : 'none';
+      document.getElementById('panel-pdb').style.display  = tab === 'pdb'  ? '' : 'none';
+
+      pendingFile = null;
+      pendingPdb  = null;
+      updateVisualizeBtn();
+      hideError();
+    }
+
+    /* ── File upload ────────────────────────────────────── */
+    function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+    function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+    function onDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFile(file);
+    }
+    function onFileSelected(e) {
+      const file = e.target.files?.[0];
+      if (file) handleFile(file);
+    }
+
+    function handleFile(file) {
+      hideError();
+      const fmt = detectFormat(file.name);
+      if (!fmt) {
+        showError('Unsupported file type. Please upload a .pdb, .cif, .mmcif, or .ent file.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        pendingFile = { content: ev.target.result, name: file.name, format: fmt };
+        pendingPdb  = null;
+        const dz = document.getElementById('drop-zone');
+        dz.classList.add('has-file');
+        document.getElementById('file-name-display').textContent = '✓ ' + file.name;
+        updateVisualizeBtn();
+      };
+      reader.onerror = () => showError('Could not read file.');
+      reader.readAsText(file);
+    }
+
+    function detectFormat(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'pdb' || ext === 'ent') return 'pdb';
+      if (ext === 'cif' || ext === 'mmcif') return 'mmcif';
+      return null;
+    }
+
+    /* ── PDB ID ──────────────────────────────────────────── */
+    function onPdbInput() {
+      hideError();
+      const val = document.getElementById('pdb-input').value.trim();
+      pendingPdb  = val.length >= 4 ? val : null;
+      pendingFile = null;
+      updateVisualizeBtn();
+    }
+
+    function setPdbId(id) {
+      switchTab('pdb');
+      document.getElementById('pdb-input').value = id;
+      pendingPdb = id;
+      updateVisualizeBtn();
+    }
+
+    /* ── Visualize button state ─────────────────────────── */
+    function updateVisualizeBtn() {
+      const btn = document.getElementById('visualize-btn');
+      btn.disabled = !(pendingFile || (pendingPdb && pendingPdb.length >= 4));
+    }
+
+    /* ── Main visualize action ──────────────────────────── */
+    async function visualize() {
+      if (!viewer) { showError('Viewer is still initializing, please wait a moment.'); return; }
+      hideError();
+
+      showLoading(true);
+
+      try {
+        if (pendingFile) {
+          document.getElementById('structure-label').textContent = pendingFile.name;
+          document.getElementById('viewer-placeholder').classList.add('hidden');
+          await viewer.loadStructureFromData(pendingFile.content, pendingFile.format, false);
+        } else if (pendingPdb) {
+          const id = pendingPdb.trim().toUpperCase();
+          document.getElementById('structure-label').textContent = 'PDB: ' + id;
+          document.getElementById('viewer-placeholder').classList.add('hidden');
+          await viewer.loadPdb(id.toLowerCase());
+        }
+      } catch (e) {
+        showError('Could not load structure: ' + (e.message || e));
+        document.getElementById('viewer-placeholder').classList.remove('hidden');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    /* ── Loading overlay ────────────────────────────────── */
+    function showLoading(on, msg) {
+      const el = document.getElementById('loading-overlay');
+      if (on) {
+        document.getElementById('loading-text').textContent = msg || 'Loading structure…';
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    }
+
+    /* ── Error helpers ───────────────────────────────────── */
+    function showError(msg) {
+      const box = document.getElementById('error-box');
+      box.textContent = '⚠ ' + msg;
+      box.style.display = 'block';
+    }
+    function hideError() {
+      document.getElementById('error-box').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>

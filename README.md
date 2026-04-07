@@ -17,6 +17,17 @@ Upload a PDB or mmCIF (`.cif`) file and extract the amino-acid sequence as FASTA
 - Per-chain residue count, copy-to-clipboard, and `.fasta` download
 - Runs entirely in your browser — **no data is sent to any server**
 
+### 🔭 Protein Structure Viewer (`protein-viewer/`)
+
+Upload a PDB or mmCIF file, or enter a PDB ID to fetch from RCSB, and explore the 3D structure interactively.
+
+**Features:**
+- Drag-and-drop or click-to-browse file upload (`.pdb`, `.cif`, `.mmcif`, `.ent`)
+- Fetch any structure directly from [RCSB PDB](https://www.rcsb.org/) by PDB ID (e.g. `1CRN`, `4HHB`)
+- Interactive 3D viewer powered by [Mol*](https://molstar.org/) (WebGL, runs fully client-side)
+- Rotate, zoom, and pan; built-in representations (cartoon, ball-and-stick, surface, etc.)
+- Runs entirely in your browser — **no data is sent to any server**
+
 ## Usage
 
 Open `index.html` in any modern browser (or serve the directory with a local web server).
