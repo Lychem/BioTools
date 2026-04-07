@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CIF ↔ PDB Converter | BioTools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:   #2563eb;
+      --blue-d: #1d4ed8;
+      --blue-l: #eff6ff;
+      --green:  #16a34a;
+      --red:    #dc2626;
+      --slate:  #64748b;
+      --bg:     #f0f4f8;
+      --card:   #ffffff;
+      --border: #e2e8f0;
+      --text:   #1e293b;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%);
+      color: #fff;
+      padding: 32px 24px 28px;
+    }
+    .header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .breadcrumb {
+      font-size: 0.82rem;
+      opacity: 0.75;
+      margin-bottom: 8px;
+    }
+    .breadcrumb a { color: inherit; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+    }
+    header p {
+      margin-top: 6px;
+      font-size: 0.95rem;
+      opacity: 0.82;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    main {
+      max-width: 860px;
+      margin: 36px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+    }
+
+    /* ── Drop zone ──────────────────────────────────────── */
+    #drop-zone {
+      border: 2.5px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #f8fafc;
+      position: relative;
+    }
+    #drop-zone.drag-over {
+      border-color: var(--blue);
+      background: var(--blue-l);
+    }
+    #drop-zone.has-file {
+      border-color: var(--green);
+      background: #f0fdf4;
+    }
+    #drop-zone .dz-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+    #drop-zone .dz-primary {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    #drop-zone .dz-secondary {
+      font-size: 0.85rem;
+      color: var(--slate);
+    }
+    #drop-zone .dz-file-name {
+      display: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--green);
+      margin-top: 10px;
+    }
+    #drop-zone.has-file .dz-file-name   { display: block; }
+    #drop-zone.has-file .dz-primary     { display: none; }
+    #drop-zone.has-file .dz-secondary   { display: none; }
+    #drop-zone.has-file .dz-icon        { display: none; }
+
+    #file-input { display: none; }
+
+    .upload-btn {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 9px 22px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .upload-btn:hover { background: var(--blue-d); }
+
+    /* ── Direction indicator ────────────────────────────── */
+    .direction-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .fmt-badge {
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .fmt-badge.pdb {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1.5px solid #fde68a;
+    }
+    .fmt-badge.cif {
+      background: #ede9fe;
+      color: #5b21b6;
+      border: 1.5px solid #c4b5fd;
+    }
+    .fmt-badge.unknown {
+      background: #f1f5f9;
+      color: var(--slate);
+      border: 1.5px solid var(--border);
+    }
+    .arrow-icon {
+      font-size: 1.6rem;
+      color: var(--slate);
+    }
+    .direction-note {
+      font-size: 0.85rem;
+      color: var(--slate);
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    /* ── Convert button ──────────────────────────────────── */
+    #convert-btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      letter-spacing: 0.2px;
+    }
+    #convert-btn:hover:not(:disabled) { background: var(--blue-d); }
+    #convert-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Error ───────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.9rem;
+    }
+
+    /* ── Output ──────────────────────────────────────────── */
+    #output-section { display: none; }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .output-header .card-title { margin-bottom: 0; }
+
+    .output-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-btn {
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .action-btn.copy {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .action-btn.copy:hover { background: #e2e8f0; }
+    .action-btn.download {
+      background: var(--blue);
+      color: #fff;
+    }
+    .action-btn.download:hover { background: var(--blue-d); }
+
+    #output-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .stat-chip {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      color: var(--slate);
+    }
+    .stat-chip strong { color: var(--text); }
+
+    #converted-output {
+      width: 100%;
+      min-height: 280px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      background: #0f172a;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 8px;
+      padding: 18px;
+      resize: vertical;
+      outline: none;
+      tab-size: 2;
+    }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 28px 16px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › CIF ↔ PDB Converter</p>
+      <h1>🔄 CIF ↔ PDB Converter</h1>
+      <p>Convert between mmCIF and PDB structure formats — entirely in your browser.</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ① Upload -->
+    <div class="card">
+      <p class="card-title">① Upload Structure File</p>
+      <div id="drop-zone">
+        <div class="dz-icon">📂</div>
+        <p class="dz-primary">Drag &amp; drop your PDB or CIF file here</p>
+        <p class="dz-secondary">or click the button below to browse</p>
+        <p class="dz-file-name" id="file-name-display"></p>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Browse file</button>
+        <input type="file" id="file-input" accept=".pdb,.cif,.ent,.mmcif" />
+      </div>
+    </div>
+
+    <!-- ② Direction -->
+    <div class="card">
+      <p class="card-title">② Conversion Direction</p>
+      <div class="direction-row">
+        <span class="fmt-badge unknown" id="src-badge">— source —</span>
+        <span class="arrow-icon">→</span>
+        <span class="fmt-badge unknown" id="dst-badge">— output —</span>
+      </div>
+      <p class="direction-note" id="direction-note">Upload a file to detect the conversion direction automatically.</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box"></div>
+
+    <!-- ③ Convert -->
+    <button id="convert-btn" disabled onclick="convert()">③ Convert</button>
+
+    <!-- ④ Output -->
+    <div class="card" id="output-section">
+      <div class="output-header">
+        <p class="card-title">④ Converted Output</p>
+        <div class="output-actions">
+          <button class="action-btn copy" onclick="copyOutput()">⧉ Copy</button>
+          <button class="action-btn download" id="download-btn" onclick="downloadOutput()">⬇ Download</button>
+        </div>
+      </div>
+      <div id="output-stats"></div>
+      <textarea id="converted-output" readonly spellcheck="false"></textarea>
+    </div>
+
+  </main>
+
+  <footer>Runs entirely in your browser — no data is ever uploaded to any server.</footer>
+
+  <script>
+  /* ================================================================
+     Shared CIF Parsing Utilities
+  ================================================================ */
+
+  /** Find a loop_ block that contains a given key prefix. */
+  function findLoop(text, keyPrefix) {
+    const escaped = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Pattern breakdown:
+    //   loop_\s*          – match the loop_ keyword
+    //   ((?:_\S+\s+)*     – group 1 starts: zero or more column names before the target
+    //   <escaped>\S*      – column name containing the required prefix
+    //   (?:\s+_\S+)*)     – zero or more column names after it; group 1 ends
+    //   ([\s\S]*?)        – group 2: the data rows (non-greedy)
+    //   (?=loop_|^data_|^#|(?![\s\S]))  – stop at next loop_, data block, comment, or end-of-string
+    const re = new RegExp(
+      `loop_\\s*((?:_\\S+\\s+)*${escaped}\\S*(?:\\s+_\\S+)*)?([\\s\\S]*?)(?=loop_|^data_|^#|(?![\\s\\S]))`,
+      'im'
+    );
+    const m = re.exec(text);
+    if (!m) return null;
+
+    const columnBlock = m[1] || '';
+    const dataBlock   = m[2] || '';
+
+    const columns = [];
+    const colRe = /_(\S+)/g;
+    let cm;
+    while ((cm = colRe.exec(columnBlock)) !== null) {
+      columns.push(cm[1].toLowerCase());
+    }
+    if (columns.length === 0) return null;
+
+    const rows = tokeniseLoopData(dataBlock, columns.length);
+    return { columns, rows };
+  }
+
+  function tokeniseLoopData(text, nCols) {
+    const tokens = [];
+    let placeholder = 0;
+    const placeholders = {};
+    const cleaned = text.replace(/\n;([\s\S]*?)\n;/g, (_, val) => {
+      const key = `\x00${placeholder}\x00`;
+      placeholders[placeholder++] = val.trim();
+      return ` ${key} `;
+    });
+
+    const lineRe = /^(?![#_]|loop_|data_)(.+)$/gm;
+    let lm;
+    while ((lm = lineRe.exec(cleaned)) !== null) {
+      const line = lm[1].trim();
+      if (!line || line.startsWith('#')) continue;
+      const toks = tokeniseCifLine(line).map(t => {
+        const pm = /^\x00(\d+)\x00$/.exec(t);
+        return pm ? placeholders[pm[1]] : t;
+      });
+      tokens.push(...toks);
+    }
+
+    const rows = [];
+    if (nCols > 0) {
+      for (let i = 0; i + nCols <= tokens.length; i += nCols) {
+        rows.push(tokens.slice(i, i + nCols));
+      }
+    }
+    return rows;
+  }
+
+  function tokeniseCifLine(line) {
+    const tokens = [];
+    const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
+    let m;
+    while ((m = re.exec(line)) !== null) {
+      tokens.push(m[1] ?? m[2] ?? m[3]);
+    }
+    return tokens;
+  }
+
+  function findCol(columns, name) {
+    const idx = columns.indexOf(name.toLowerCase());
+    return idx === -1 ? null : idx;
+  }
+
+  /** Extract a single key-value from CIF text (handles quoted values). */
+  function extractCifValue(text, key) {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Capture group 1: optional opening quote (' or ")
+    // Capture group 2: the value itself (non-greedy, spans lines for semicolon blocks)
+    // Lookahead: stops at the next CIF key, loop_, comment, or end-of-line
+    const re = new RegExp(
+      `${escaped}\\s+(['\"]?)([\\s\\S]+?)\\1(?=\\s*(?:_|loop_|#|$))`,
+      'i'
+    );
+    const m = re.exec(text);
+    if (!m) return null;
+    return m[2].trim();
+  }
+
+  /* ================================================================
+     CIF → PDB Converter
+  ================================================================ */
+
+  /**
+   * Convert mmCIF text to PDB format.
+   * Returns { pdbText, atomCount, chainIds }.
+   */
+  function cifToPdb(text) {
+    const outputLines = [];
+
+    // REMARK header
+    const entryId = extractCifValue(text, '_entry.id')
+                 || extractCifValue(text, '_struct.entry_id')
+                 || 'XXXX';
+    outputLines.push(`REMARK    Converted from mmCIF format by BioTools`);
+    outputLines.push(`REMARK    Entry: ${entryId}`);
+
+    // CRYST1 from _cell and _symmetry
+    const aRaw  = extractCifValue(text, '_cell.length_a');
+    const bRaw  = extractCifValue(text, '_cell.length_b');
+    const cRaw  = extractCifValue(text, '_cell.length_c');
+    const alRaw = extractCifValue(text, '_cell.angle_alpha');
+    const beRaw = extractCifValue(text, '_cell.angle_beta');
+    const gaRaw = extractCifValue(text, '_cell.angle_gamma');
+    const sg    = extractCifValue(text, '_symmetry.space_group_name_H-M')
+               || extractCifValue(text, '_symmetry.space_group_name_h-m')
+               || extractCifValue(text, '_space_group.name_H-M_alt')
+               || 'P 1';
+
+    if (aRaw && bRaw && cRaw) {
+      const a  = parseFloat(aRaw).toFixed(3).padStart(9);
+      const b  = parseFloat(bRaw).toFixed(3).padStart(9);
+      const c  = parseFloat(cRaw).toFixed(3).padStart(9);
+      const al = parseFloat(alRaw || '90').toFixed(2).padStart(7);
+      const be = parseFloat(beRaw || '90').toFixed(2).padStart(7);
+      const ga = parseFloat(gaRaw || '90').toFixed(2).padStart(7);
+      outputLines.push(`CRYST1${a}${b}${c}${al}${be}${ga} ${sg.padEnd(11)}`);
+    }
+
+    // _atom_site loop
+    const atomSiteLoop = findLoop(text, '_atom_site.');
+    if (!atomSiteLoop) throw new Error('No _atom_site coordinate data found in CIF file.');
+
+    const { columns, rows } = atomSiteLoop;
+
+    const col = name => findCol(columns, name);
+
+    const groupIdx  = col('atom_site.group_pdb');
+    const serialIdx = col('atom_site.id');
+    const atomIdx   = col('atom_site.auth_atom_id')  ?? col('atom_site.label_atom_id');
+    const altIdx    = col('atom_site.label_alt_id');
+    const compIdx   = col('atom_site.auth_comp_id')  ?? col('atom_site.label_comp_id');
+    const chainIdx  = col('atom_site.auth_asym_id')  ?? col('atom_site.label_asym_id');
+    const seqIdx    = col('atom_site.auth_seq_id')   ?? col('atom_site.label_seq_id');
+    const insIdx    = col('atom_site.pdbx_pdb_ins_code');
+    const xIdx      = col('atom_site.cartn_x');
+    const yIdx      = col('atom_site.cartn_y');
+    const zIdx      = col('atom_site.cartn_z');
+    const occIdx    = col('atom_site.occupancy');
+    const bIdx      = col('atom_site.b_iso_or_equiv');
+    const elemIdx   = col('atom_site.type_symbol');
+    const chargeIdx = col('atom_site.pdbx_formal_charge');
+
+    if (xIdx === null || yIdx === null || zIdx === null) {
+      throw new Error('CIF file is missing coordinate data (Cartn_x/y/z).');
+    }
+
+    const chainIds = new Set();
+    let atomCount  = 0;
+    let lastAtomChain  = null;
+    let lastAtomSerial = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+
+      const groupRaw = groupIdx !== null ? (row[groupIdx] || 'ATOM') : 'ATOM';
+      const isAtom   = groupRaw.toUpperCase() !== 'HETATM';
+      const recType  = isAtom ? 'ATOM  ' : 'HETATM';
+
+      // Chain ID (single character; auth_asym_id preferred for PDB compatibility)
+      const chainRaw = chainIdx !== null ? (row[chainIdx] || '') : '';
+      const chainId  = (chainRaw === '.' || chainRaw === '?') ? ' ' : (chainRaw[0] || ' ');
+
+      // Insert TER when an ATOM chain ends
+      if (isAtom && lastAtomChain !== null && lastAtomChain !== chainId) {
+        outputLines.push(
+          `TER   ${(lastAtomSerial + 1).toString().padStart(5)}` +
+          '      ' + '   '.padEnd(3) + ' ' + lastAtomChain
+        );
+        lastAtomChain = null;
+      }
+
+      // Serial number: PDB format supports up to 99999 (5 decimal digits).
+      // For larger files the counter wraps around to avoid format overflow.
+      const serialRaw = serialIdx !== null ? row[serialIdx] : String(i + 1);
+      const serial    = parseInt(serialRaw, 10) || (i + 1);
+      const serialMod = ((serial - 1) % 99999) + 1;
+      const serialStr = serialMod.toString().padStart(5);
+
+      // Atom name (4 chars, PDB-formatted)
+      const atomNameRaw = atomIdx !== null ? (row[atomIdx] || '') : '';
+      const elemRaw     = elemIdx !== null ? (row[elemIdx] || '') : '';
+      const atomName4   = formatAtomName(atomNameRaw.trim(), elemRaw.trim());
+
+      // Alt location
+      const altRaw = altIdx !== null ? row[altIdx] : '.';
+      const altLoc = (altRaw && altRaw !== '.' && altRaw !== '?') ? altRaw[0] : ' ';
+
+      // Residue name (3 chars)
+      const resName = ((compIdx !== null ? row[compIdx] : '') || '').slice(0, 3).padEnd(3);
+
+      // Residue seq number and insertion code
+      const seqRaw  = seqIdx !== null ? (row[seqIdx] || '0') : '0';
+      const seqNum  = (seqRaw === '.' || seqRaw === '?') ? 0 : (parseInt(seqRaw, 10) || 0);
+      const seqStr  = seqNum.toString().padStart(4);
+      const insRaw  = insIdx !== null ? row[insIdx] : '?';
+      const insCode = (insRaw && insRaw !== '?' && insRaw !== '.') ? insRaw[0] : ' ';
+
+      // Coordinates
+      const xVal = parseFloat(row[xIdx] || '0');
+      const yVal = parseFloat(row[yIdx] || '0');
+      const zVal = parseFloat(row[zIdx] || '0');
+      if (isNaN(xVal) || isNaN(yVal) || isNaN(zVal)) continue;
+      const x = xVal.toFixed(3).padStart(8);
+      const y = yVal.toFixed(3).padStart(8);
+      const z = zVal.toFixed(3).padStart(8);
+
+      // Occupancy and B-factor
+      const occRaw = (occIdx !== null ? row[occIdx] : '') || '1.00';
+      const bRaw2  = (bIdx   !== null ? row[bIdx]   : '') || '0.00';
+      const occ  = parseFloat(occRaw === '.' || occRaw === '?' ? '1.00' : occRaw).toFixed(2).padStart(6);
+      const bfac = parseFloat(bRaw2  === '.' || bRaw2  === '?' ? '0.00' : bRaw2 ).toFixed(2).padStart(6);
+
+      // Element symbol (2 chars, right-justified in columns 77-78)
+      const elemStr = elemRaw.slice(0, 2).toUpperCase().padStart(2);
+
+      // Formal charge
+      const chargeRaw = chargeIdx !== null ? (row[chargeIdx] || '') : '';
+      const charge    = (chargeRaw && chargeRaw !== '?' && chargeRaw !== '.')
+                       ? chargeRaw.slice(0, 2).padEnd(2) : '  ';
+
+      // Build PDB record (80 chars standard)
+      // Cols:  1-6   7-11  12   13-16   17    18-20  21   22    23-26  27   28-30  31-38  39-46  47-54  55-60  61-66  67-76  77-78  79-80
+      const line = recType + serialStr + ' ' + atomName4 + altLoc +
+                   resName + ' ' + chainId + seqStr + insCode +
+                   '   ' + x + y + z + occ + bfac +
+                   '          ' + elemStr + charge;
+      outputLines.push(line);
+
+      atomCount++;
+      chainIds.add(chainId.trim() || '_');
+      if (isAtom) {
+        lastAtomChain  = chainId;
+        lastAtomSerial = serialMod;
+      }
+    }
+
+    // Final TER for last ATOM chain
+    if (lastAtomChain !== null) {
+      outputLines.push(
+        `TER   ${(lastAtomSerial + 1).toString().padStart(5)}` +
+        '      ' + '   '.padEnd(3) + ' ' + lastAtomChain
+      );
+    }
+
+    outputLines.push('END');
+
+    return { pdbText: outputLines.join('\n'), atomCount, chainIds };
+  }
+
+  /**
+   * Format an atom name to exactly 4 characters following PDB conventions.
+   * 1-char element → leading space (e.g. " CA ").
+   * 2-char element → left-justified  (e.g. "FE  ").
+   */
+  function formatAtomName(name, elem) {
+    if (!name) return '    ';
+    if (name.length >= 4) return name.slice(0, 4);
+    if (elem.length >= 2) {
+      // Two-character element (metals, etc.): left-justify in 4 chars
+      return name.padEnd(4).slice(0, 4);
+    }
+    // One-character element: add leading space, then right-pad
+    return (' ' + name).padEnd(4).slice(0, 4);
+  }
+
+  /* ================================================================
+     PDB → CIF Converter
+  ================================================================ */
+
+  /**
+   * Convert PDB text to mmCIF format.
+   * Returns { cifText, atomCount, chainIds }.
+   */
+  function pdbToCif(text) {
+    const lines = text.split(/\r?\n/);
+
+    // Entry ID from HEADER record (cols 63-66, 1-indexed)
+    let entryId = 'XXXX';
+    for (const line of lines) {
+      if (line.startsWith('HEADER')) {
+        const id = line.slice(62, 66).trim();
+        if (id) { entryId = id.toUpperCase(); break; }
+      }
+    }
+
+    // Cell parameters from CRYST1
+    let cellBlock = '';
+    for (const line of lines) {
+      if (!line.startsWith('CRYST1')) continue;
+      const a  = parseFloat(line.slice(6,  15) || '0');
+      const b  = parseFloat(line.slice(15, 24) || '0');
+      const c  = parseFloat(line.slice(24, 33) || '0');
+      const al = parseFloat(line.slice(33, 40) || '90');
+      const be = parseFloat(line.slice(40, 47) || '90');
+      const ga = parseFloat(line.slice(47, 54) || '90');
+      const sg = line.slice(55, 66).trim() || 'P 1';
+      cellBlock = [
+        '#',
+        `_cell.length_a    ${a.toFixed(3)}`,
+        `_cell.length_b    ${b.toFixed(3)}`,
+        `_cell.length_c    ${c.toFixed(3)}`,
+        `_cell.angle_alpha ${al.toFixed(2)}`,
+        `_cell.angle_beta  ${be.toFixed(2)}`,
+        `_cell.angle_gamma ${ga.toFixed(2)}`,
+        '#',
+        `_symmetry.space_group_name_H-M '${sg}'`,
+      ].join('\n');
+      break;
+    }
+
+    // Parse ATOM / HETATM records
+    const atoms = [];
+    for (const line of lines) {
+      const rec = line.slice(0, 6).trimEnd();
+      if (rec !== 'ATOM' && rec !== 'ATOM  ' && rec !== 'HETATM') continue;
+      const group   = rec.trim();
+      const serial  = line.slice(6, 11).trim();
+      const name    = line.slice(12, 16);          // 4 chars, keep padding
+      const altLoc  = line[16] || ' ';
+      const resName = line.slice(17, 20).trim();
+      const chainId = line[21] || ' ';
+      const resSeq  = line.slice(22, 26).trim();
+      const iCode   = line[26] || ' ';
+      const x       = line.slice(30, 38).trim();
+      const y       = line.slice(38, 46).trim();
+      const z       = line.slice(46, 54).trim();
+      const occ     = line.slice(54, 60).trim() || '1.00';
+      const bfac    = line.slice(60, 66).trim() || '0.00';
+      const elem    = line.slice(76, 78).trim();
+      const charge  = line.slice(78, 80).trim();
+
+      if (!x || !y || !z) continue;
+      atoms.push({ group, serial, name, altLoc, resName, chainId, resSeq, iCode, x, y, z, occ, bfac, elem, charge });
+    }
+
+    if (atoms.length === 0) throw new Error('No ATOM or HETATM records found in PDB file.');
+
+    // Assign entity IDs: one per unique ATOM chain, then one shared for all HETATM
+    const chainEntityMap = new Map();
+    let entityCounter = 1;
+    for (const a of atoms) {
+      if (a.group === 'ATOM' && !chainEntityMap.has(a.chainId)) {
+        chainEntityMap.set(a.chainId, entityCounter++);
+      }
+    }
+    const hetatmEntityId = entityCounter;
+
+    // Build mmCIF text
+    const cifLines = [];
+    cifLines.push(`data_${entryId}`);
+    cifLines.push('#');
+    cifLines.push(`_entry.id ${entryId}`);
+    if (cellBlock) cifLines.push(cellBlock);
+    cifLines.push('#');
+    cifLines.push('loop_');
+    cifLines.push('_atom_site.group_PDB');
+    cifLines.push('_atom_site.id');
+    cifLines.push('_atom_site.type_symbol');
+    cifLines.push('_atom_site.label_atom_id');
+    cifLines.push('_atom_site.label_alt_id');
+    cifLines.push('_atom_site.label_comp_id');
+    cifLines.push('_atom_site.label_asym_id');
+    cifLines.push('_atom_site.label_entity_id');
+    cifLines.push('_atom_site.label_seq_id');
+    cifLines.push('_atom_site.pdbx_PDB_ins_code');
+    cifLines.push('_atom_site.Cartn_x');
+    cifLines.push('_atom_site.Cartn_y');
+    cifLines.push('_atom_site.Cartn_z');
+    cifLines.push('_atom_site.occupancy');
+    cifLines.push('_atom_site.B_iso_or_equiv');
+    cifLines.push('_atom_site.auth_seq_id');
+    cifLines.push('_atom_site.auth_comp_id');
+    cifLines.push('_atom_site.auth_asym_id');
+    cifLines.push('_atom_site.auth_atom_id');
+    cifLines.push('_atom_site.pdbx_PDB_model_num');
+
+    const chainIds = new Set();
+
+    for (let i = 0; i < atoms.length; i++) {
+      const a = atoms[i];
+
+      // Infer element symbol from atom name if not present in cols 77-78
+      let elem = a.elem;
+      if (!elem) {
+        const nameTrimmed = a.name.trim();
+        // Strip digits, take first 1-2 alpha characters
+        const alphaPart = nameTrimmed.replace(/[^A-Za-z]/g, '');
+        elem = alphaPart.slice(0, 1).toUpperCase() || 'X';
+      }
+
+      const group     = a.group;
+      const serial    = a.serial || String(i + 1);
+      const labelAtom = cifToken(a.name.trim());
+      const altLoc    = (!a.altLoc.trim()) ? '.' : a.altLoc.trim();
+      const labelComp = cifToken(a.resName);
+      const labelAsym = cifToken(a.chainId.trim() || 'A');
+      const entityId  = group === 'ATOM'
+                       ? (chainEntityMap.get(a.chainId) || 1).toString()
+                       : hetatmEntityId.toString();
+      const labelSeq  = group === 'ATOM' ? (a.resSeq || '.') : '.';
+      const insCode   = (!a.iCode.trim()) ? '?' : a.iCode.trim();
+      const x         = parseFloat(a.x).toFixed(3);
+      const y         = parseFloat(a.y).toFixed(3);
+      const z         = parseFloat(a.z).toFixed(3);
+      const occ       = parseFloat(a.occ  || '1.00').toFixed(2);
+      const bfac      = parseFloat(a.bfac || '0.00').toFixed(2);
+      const authSeq   = a.resSeq || '.';
+      const authComp  = cifToken(a.resName);
+      const authAsym  = cifToken(a.chainId.trim() || 'A');
+      const authAtom  = cifToken(a.name.trim());
+      const modelNum  = '1';
+
+      const row = [
+        group, serial, elem, labelAtom, altLoc,
+        labelComp, labelAsym, entityId, labelSeq, insCode,
+        x, y, z, occ, bfac,
+        authSeq, authComp, authAsym, authAtom, modelNum
+      ].join(' ');
+      cifLines.push(row);
+
+      chainIds.add(a.chainId.trim() || '_');
+    }
+
+    cifLines.push('#');
+    return { cifText: cifLines.join('\n'), atomCount: atoms.length, chainIds };
+  }
+
+  /** Wrap a CIF token in quotes if it contains whitespace or starts with special chars. */
+  function cifToken(val) {
+    if (!val || val === '.' || val === '?') return '.';
+    if (/[\s"'#]/.test(val) || val[0] === '_' || val[0] === '$') {
+      return `'${val.replace(/'/g, "''")}'`;
+    }
+    return val;
+  }
+
+  /* ================================================================
+     Format Detection
+  ================================================================ */
+
+  function detectFormat(filename) {
+    const ext = filename.toLowerCase().split('.').pop();
+    if (ext === 'cif' || ext === 'mmcif') return 'cif';
+    if (ext === 'pdb' || ext === 'ent') return 'pdb';
+    return null;
+  }
+
+  /* ================================================================
+     UI State
+  ================================================================ */
+
+  let currentFile  = null;
+  let inputFormat  = null;   // 'pdb' | 'cif'
+
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const convertBtn = document.getElementById('convert-btn');
+  const errorBox   = document.getElementById('error-box');
+
+  // ── Drag & Drop ───────────────────────────────────────────────
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  dropZone.addEventListener('click', e => {
+    if (e.target.classList.contains('upload-btn')) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    const fmt = detectFormat(file.name);
+    if (!fmt) {
+      showError('Please upload a file with a .pdb, .ent, .cif, or .mmcif extension.');
+      return;
+    }
+    currentFile = file;
+    inputFormat = fmt;
+    document.getElementById('file-name-display').textContent = `✔ ${file.name}`;
+    dropZone.classList.add('has-file');
+    clearError();
+    updateDirectionUI(fmt);
+    convertBtn.disabled = false;
+    document.getElementById('output-section').style.display = 'none';
+  }
+
+  function updateDirectionUI(fmt) {
+    const srcBadge = document.getElementById('src-badge');
+    const dstBadge = document.getElementById('dst-badge');
+    const note     = document.getElementById('direction-note');
+
+    if (fmt === 'pdb') {
+      srcBadge.textContent = 'PDB';
+      srcBadge.className   = 'fmt-badge pdb';
+      dstBadge.textContent = 'mmCIF';
+      dstBadge.className   = 'fmt-badge cif';
+      note.textContent     = 'PDB (.pdb / .ent) → mmCIF (.cif). Atom coordinates, cell parameters and symmetry are preserved.';
+      convertBtn.textContent = '③ Convert PDB → CIF';
+    } else {
+      srcBadge.textContent = 'mmCIF';
+      srcBadge.className   = 'fmt-badge cif';
+      dstBadge.textContent = 'PDB';
+      dstBadge.className   = 'fmt-badge pdb';
+      note.textContent     = 'mmCIF (.cif) → PDB (.pdb). Auth chain IDs and sequence numbers are used for maximum compatibility.';
+      convertBtn.textContent = '③ Convert CIF → PDB';
+    }
+  }
+
+  // ── Convert ───────────────────────────────────────────────────
+
+  function convert() {
+    if (!currentFile || !inputFormat) return;
+    clearError();
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const text = e.target.result;
+        let result, outputText, atomCount, chainIds, outputExt, btnLabel;
+
+        if (inputFormat === 'cif') {
+          result    = cifToPdb(text);
+          outputText = result.pdbText;
+          atomCount  = result.atomCount;
+          chainIds   = result.chainIds;
+          outputExt  = 'pdb';
+          btnLabel   = '⬇ Download .pdb';
+        } else {
+          result    = pdbToCif(text);
+          outputText = result.cifText;
+          atomCount  = result.atomCount;
+          chainIds   = result.chainIds;
+          outputExt  = 'cif';
+          btnLabel   = '⬇ Download .cif';
+        }
+
+        document.getElementById('converted-output').value = outputText;
+
+        // Stats
+        const srcLabel = inputFormat === 'cif' ? 'mmCIF → PDB' : 'PDB → mmCIF';
+        document.getElementById('output-stats').innerHTML = `
+          <span class="stat-chip">Conversion: <strong>${srcLabel}</strong></span>
+          <span class="stat-chip">Atoms: <strong>${atomCount.toLocaleString()}</strong></span>
+          <span class="stat-chip">Chains: <strong>${chainIds.size}</strong></span>
+        `;
+
+        // Update download button label and store extension
+        const dlBtn = document.getElementById('download-btn');
+        dlBtn.textContent = btnLabel;
+        dlBtn.dataset.ext = outputExt;
+
+        document.getElementById('output-section').style.display = 'block';
+        document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        showError(err.message);
+      }
+    };
+    reader.readAsText(currentFile);
+  }
+
+  // ── Copy / Download ───────────────────────────────────────────
+
+  function copyOutput() {
+    const text = document.getElementById('converted-output').value;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.action-btn.copy');
+      const orig = btn.textContent;
+      btn.textContent = '✔ Copied!';
+      setTimeout(() => btn.textContent = orig, 2000);
+    }).catch(() => {
+      // Fallback for browsers that don't support the Clipboard API (deprecated but widely supported)
+      const ta = document.getElementById('converted-output');
+      ta.select();
+      document.execCommand('copy');
+    });
+  }
+
+  function downloadOutput() {
+    const text    = document.getElementById('converted-output').value;
+    const dlBtn   = document.getElementById('download-btn');
+    const ext     = dlBtn.dataset.ext || 'txt';
+    const baseName = currentFile ? currentFile.name.replace(/\.[^.]+$/, '') : 'structure';
+    const blob    = new Blob([text], { type: 'text/plain' });
+    const url     = URL.createObjectURL(blob);
+    const a       = document.createElement('a');
+    a.href        = url;
+    a.download    = `${baseName}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Error helpers ─────────────────────────────────────────────
+
+  function showError(msg) {
+    errorBox.textContent = `⚠ ${msg}`;
+    errorBox.style.display = 'block';
+  }
+
+  function clearError() {
+    errorBox.textContent = '';
+    errorBox.style.display = 'none';
+  }
+  </script>
+
+</body>
+</html>
