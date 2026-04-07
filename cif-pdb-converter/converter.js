@@ -22,7 +22,20 @@ function findLoop(text, keyPrefix) {
       j++;
     }
 
-    if (columns.length === 0 || !columns.some(c => c.startsWith(prefixLower))) continue;
+    if (columns.length === 0 || !columns.some(c => c.startsWith(prefixLower))) {
+      // Skip past the data rows of this non-matching loop so the outer loop
+      // doesn't re-examine them as potential loop_ markers.
+      while (j < lines.length) {
+        const trimmed = lines[j].trim();
+        if (trimmed.toLowerCase() === 'loop_' ||
+            /^data_/i.test(trimmed) ||
+            trimmed.startsWith('_') ||
+            trimmed.startsWith('#')) break;
+        j++;
+      }
+      i = j - 1;
+      continue;
+    }
 
     // Collect data rows until the next CIF section begins
     const dataLines = [];
