@@ -399,11 +399,10 @@
         <span id="structure-label"></span>
       </div>
       <div style="position:relative">
-        <div id="mol-viewer">
-          <div id="viewer-placeholder">
-            <div class="placeholder-icon">🧬</div>
-            <div class="placeholder-text">Upload a file or enter a PDB ID to visualize a structure</div>
-          </div>
+        <div id="mol-viewer"></div>
+        <div id="viewer-placeholder">
+          <div class="placeholder-icon">🧬</div>
+          <div class="placeholder-text">Upload a file or enter a PDB ID to visualize a structure</div>
         </div>
         <div id="loading-overlay">
           <div class="spinner"></div>
@@ -545,7 +544,8 @@
           const id = pendingPdb.trim().toUpperCase();
           document.getElementById('structure-label').textContent = 'PDB: ' + id;
           document.getElementById('viewer-placeholder').classList.add('hidden');
-          await viewer.loadPdb(id.toLowerCase());
+          const url = `https://files.rcsb.org/download/${id.toLowerCase()}.cif`;
+          await viewer.loadStructureFromUrl(url, 'mmcif', false);
         }
       } catch (e) {
         showError('Could not load structure: ' + (e.message || e));
