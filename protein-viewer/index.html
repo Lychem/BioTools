@@ -456,8 +456,8 @@
       activeTab = tab;
       document.getElementById('tab-file').classList.toggle('active', tab === 'file');
       document.getElementById('tab-pdb').classList.toggle('active', tab === 'pdb');
-      document.getElementById('panel-file').style.display = tab === 'file' ? '' : 'none';
-      document.getElementById('panel-pdb').style.display  = tab === 'pdb'  ? '' : 'none';
+      document.getElementById('panel-file').style.display = tab === 'file' ? 'block' : 'none';
+      document.getElementById('panel-pdb').style.display  = tab === 'pdb'  ? 'block' : 'none';
 
       pendingFile = null;
       pendingPdb  = null;
