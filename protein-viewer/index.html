@@ -1247,8 +1247,9 @@
     function resetContactMap() {
       cmAtoms = cmDistances = null;
       document.getElementById('cm-controls-bar').hidden = true;
-      document.getElementById('cm-placeholder').textContent =
-        '📊 Load a structure to generate the contact map';
+      document.getElementById('cm-placeholder').innerHTML =
+        '<span style="font-size:2.2rem;opacity:0.35">📊</span>' +
+        '<span>Load a structure to generate the contact map</span>';
       document.getElementById('cm-placeholder').classList.remove('hidden');
       document.getElementById('cm-sel-info').style.display = 'none';
     }
