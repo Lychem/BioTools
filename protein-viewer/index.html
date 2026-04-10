@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Protein Structure Viewer | BioTools</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />
-  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2/plotly.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -364,6 +363,24 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { font-size: 0.9rem; opacity: 0.8; }
 
+    /* ── Contact-map toggle ──────────────────────────────── */
+    .cm-toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      user-select: none;
+    }
+    .cm-toggle-label input[type="checkbox"] {
+      accent-color: var(--blue);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
     /* Right: Contact Map panel */
     .panel-cm {
       flex: 1 1 42%;
@@ -372,6 +389,7 @@
       display: flex;
       flex-direction: column;
     }
+    .panel-cm[hidden] { display: none !important; }
     .cm-plot-wrap {
       flex: 1;
       position: relative;
@@ -531,8 +549,12 @@
 
       <!-- Header row -->
       <div class="viewer-header">
-        <span class="viewer-title">③ 3D Viewer &amp; Contact Map</span>
+        <span class="viewer-title">③ 3D Viewer</span>
         <span id="structure-label"></span>
+        <label class="cm-toggle-label" title="Showing the contact map loads an extra library and may slow down older devices">
+          <input type="checkbox" id="cm-toggle" onchange="onToggleContactMap(this.checked)" />
+          Show Contact Map
+        </label>
       </div>
 
       <!-- Contact map controls (revealed after a structure loads) -->
@@ -570,7 +592,7 @@
         </div>
 
         <!-- Right: Contact Map -->
-        <div class="panel-cm">
+        <div class="panel-cm" id="panel-cm" hidden>
           <div class="cm-plot-wrap">
             <div id="contact-map"></div>
             <div id="cm-placeholder">
@@ -593,8 +615,8 @@
   <footer>Runs entirely in your browser — no data is ever uploaded to any server.
     3D visualization powered by <a href="https://molstar.org/" target="_blank" rel="noopener noreferrer"
       style="color:inherit">Mol*</a>.
-    Contact map powered by <a href="https://plotly.com/javascript/" target="_blank" rel="noopener noreferrer"
-      style="color:inherit">Plotly.js</a>.
+    Optional contact map powered by <a href="https://plotly.com/javascript/" target="_blank" rel="noopener noreferrer"
+      style="color:inherit">Plotly.js</a> (loaded on demand).
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js"></script>
@@ -611,6 +633,21 @@
     let cmThreshold      = 8.0;
     let cmMode           = 'contact';  // 'contact' | 'distance'
     let cmClickRegistered = false;
+    let cmEnabled        = false;   // contact map shown only when user opts in
+    let loadedContent    = null;    // { rawContent, fmt } — kept for on-demand map generation
+    let plotlyReady      = false;   // true once Plotly.js has been loaded
+
+    /* ── Lazy-load Plotly.js ────────────────────────────── */
+    function loadPlotly() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.Plotly !== 'undefined') { plotlyReady = true; resolve(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2/plotly.min.js';
+        s.onload  = () => { plotlyReady = true; resolve(); };
+        s.onerror = () => reject(new Error('Failed to load Plotly.js'));
+        document.head.appendChild(s);
+      });
+    }
 
     /* ── Mol* viewer init ───────────────────────────────── */
     async function initViewer() {
@@ -746,12 +783,16 @@
         }
 
         if (rawContent) {
-          await generateContactMap(rawContent, fmt);
+          loadedContent = { rawContent, fmt };
+          if (cmEnabled) {
+            await generateContactMap(rawContent, fmt);
+          }
         }
 
       } catch (e) {
         showError('Could not load structure: ' + (e.message || e));
         document.getElementById('viewer-placeholder').classList.remove('hidden');
+        loadedContent = null;
         resetContactMap();
       } finally {
         showLoading(false);
@@ -782,6 +823,24 @@
     /* ═══════════════════════════════════════════════════════
        CONTACT MAP
        ═══════════════════════════════════════════════════════ */
+
+    /* ── Contact-map toggle handler ─────────────────────── */
+    async function onToggleContactMap(checked) {
+      cmEnabled = checked;
+      const panel = document.getElementById('panel-cm');
+      if (checked) {
+        panel.hidden = false;
+        // If a structure is already loaded and map hasn't been generated yet, do it now
+        if (loadedContent && cmAtoms === null) {
+          await generateContactMap(loadedContent.rawContent, loadedContent.fmt);
+        } else if (cmAtoms && cmDistances) {
+          // Map data exists but panel was just re-shown — re-render the plot
+          renderContactMap(cmAtoms, cmDistances);
+        }
+      } else {
+        panel.hidden = true;
+      }
+    }
 
     /* ── PDB Cα parser ──────────────────────────────────── */
     function parsePdbCa(content) {
@@ -1199,6 +1258,8 @@
       cmPlaceholder.classList.add('hidden');
 
       try {
+        // Lazy-load Plotly.js on first use
+        await loadPlotly();
         // Parse Cα atoms
         let atoms = format === 'pdb' ? parsePdbCa(content) : parseMmCifCa(content);
         atoms = deduplicateCa(atoms);
@@ -1252,6 +1313,12 @@
         '<span>Load a structure to generate the contact map</span>';
       document.getElementById('cm-placeholder').classList.remove('hidden');
       document.getElementById('cm-sel-info').style.display = 'none';
+      // Clear any existing Plotly chart so it doesn't show stale data
+      if (typeof window.Plotly !== 'undefined') {
+        try { Plotly.purge('contact-map'); } catch (e) {
+          console.warn('[ContactMap] Could not purge chart:', e);
+        }
+      }
     }
   </script>
 
