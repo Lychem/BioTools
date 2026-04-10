@@ -640,7 +640,7 @@
     /* ── Lazy-load Plotly.js ────────────────────────────── */
     function loadPlotly() {
       return new Promise((resolve, reject) => {
-        if (typeof Plotly !== 'undefined') { plotlyReady = true; resolve(); return; }
+        if (typeof window.Plotly !== 'undefined') { plotlyReady = true; resolve(); return; }
         const s = document.createElement('script');
         s.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2/plotly.min.js';
         s.onload  = () => { plotlyReady = true; resolve(); };
@@ -831,7 +831,7 @@
       if (checked) {
         panel.hidden = false;
         // If a structure is already loaded and map hasn't been generated yet, do it now
-        if (loadedContent && !cmAtoms) {
+        if (loadedContent && cmAtoms === null) {
           await generateContactMap(loadedContent.rawContent, loadedContent.fmt);
         } else if (cmAtoms && cmDistances) {
           // Map data exists but panel was just re-shown — re-render the plot
@@ -1314,8 +1314,10 @@
       document.getElementById('cm-placeholder').classList.remove('hidden');
       document.getElementById('cm-sel-info').style.display = 'none';
       // Clear any existing Plotly chart so it doesn't show stale data
-      if (typeof Plotly !== 'undefined') {
-        try { Plotly.purge('contact-map'); } catch (_) {}
+      if (typeof window.Plotly !== 'undefined') {
+        try { Plotly.purge('contact-map'); } catch (e) {
+          console.warn('[ContactMap] Could not purge chart:', e);
+        }
       }
     }
   </script>
