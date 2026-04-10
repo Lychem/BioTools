@@ -453,9 +453,7 @@ const PAM250 = {
 function parseSequence(raw) {
   const lines = raw.split('\n');
   const seqLines = lines.filter(l => !l.trimStart().startsWith('>'));
-  const joined = seqLines.join('');
-  // Keep only valid standard amino acid letters
-  return joined.replace(/[^A-Za-z]/g, '').toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g, '');
+  return seqLines.join('').toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g, '');
 }
 
 /* ================================================================
@@ -871,15 +869,7 @@ function copyResult() {
     btn.textContent = '✓ Copied!';
     setTimeout(() => { btn.textContent = orig; }, 2000);
   }).catch(() => {
-    // Fallback for browsers without clipboard API
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity  = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    alert('Copy failed. Please use the Download button instead.');
   });
 }
 </script>
