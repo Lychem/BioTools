@@ -145,6 +145,15 @@
     .upload-btn:hover { background: var(--blue-d); }
 
     /* ── Options ────────────────────────────────────────── */
+    .option-subtitle {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+
     .options-row {
       display: flex;
       gap: 16px;
@@ -352,7 +361,26 @@
 
     <!-- ② Options -->
     <div class="card">
-      <p class="card-title">② Choose Output Format</p>
+      <p class="card-title">② Options</p>
+
+      <p class="option-subtitle">Sequence source</p>
+      <div class="options-row" style="margin-bottom:20px;">
+
+        <label class="radio-card selected" id="lbl-structure" onclick="selectSeqSource('structure')">
+          <input type="radio" name="src" value="structure" checked />
+          <span class="radio-label">Structure-derived</span>
+          <p class="radio-desc">Extracted from ATOM coordinates (Cα atoms). Reflects residues actually present in the model — recommended for AI-predicted structures.</p>
+        </label>
+
+        <label class="radio-card" id="lbl-author" onclick="selectSeqSource('author')">
+          <input type="radio" name="src" value="author" />
+          <span class="radio-label">Author-annotated</span>
+          <p class="radio-desc">From SEQRES / _entity_poly records. May include residues not resolved in the structure.</p>
+        </label>
+
+      </div>
+
+      <p class="option-subtitle">Output format</p>
       <div class="options-row">
 
         <label class="radio-card selected" id="lbl-oneline" onclick="selectFormat('oneline')">
@@ -432,7 +460,7 @@
      Reads SEQRES records → chains
   ================================================================ */
 
-  function parsePDB(text) {
+  function parsePDB(text, mode) {
     const lines = text.split(/\r?\n/);
     // Map: chainId → array of 3-letter codes
     const seqresMap = new Map();
@@ -446,16 +474,19 @@
       }
     }
 
-    for (const line of lines) {
-      if (!line.startsWith('SEQRES')) continue;
-      const chainId = (line[11]?.trim()) || '_';
-      const residues = line.slice(19).trim().split(/\s+/).filter(Boolean);
-      if (!seqresMap.has(chainId)) seqresMap.set(chainId, []);
-      seqresMap.get(chainId).push(...residues);
+    if (mode !== 'structure') {
+      // Author-annotated mode: read SEQRES records
+      for (const line of lines) {
+        if (!line.startsWith('SEQRES')) continue;
+        const chainId = (line[11]?.trim()) || '_';
+        const residues = line.slice(19).trim().split(/\s+/).filter(Boolean);
+        if (!seqresMap.has(chainId)) seqresMap.set(chainId, []);
+        seqresMap.get(chainId).push(...residues);
+      }
     }
 
     if (seqresMap.size === 0) {
-      // Fallback: derive sequence from ATOM records (CA atoms only, unique resSeq)
+      // Structure-derived: derive sequence from ATOM records (CA atoms only, unique resSeq)
       const atomMap = new Map(); // chainId → Map<resSeq, resName>
       for (const line of lines) {
         if (!line.startsWith('ATOM  ') && !line.startsWith('ATOM ')) continue;
@@ -582,7 +613,15 @@
   /**
    * More robust CIF parser: extracts entity_poly data and struct_asym data.
    */
-  function parseCIF(text) {
+  function parseCIF(text, mode) {
+    // Structure-derived mode: extract directly from _atom_site coordinates
+    if (mode === 'structure') {
+      const atomChains = parseCifAtomSite(text);
+      if (atomChains.length > 0) return atomChains;
+      throw new Error('No ATOM coordinate data found in CIF file (_atom_site records missing or empty).');
+    }
+
+    // Author-annotated mode: use _entity_poly / _entity_poly_seq records
     // ── 1. Entity→sequence map ────────────────────────────────────
     const entitySeq = new Map(); // entity_id → one-letter seq
 
@@ -818,6 +857,7 @@
 
   let currentFile  = null;
   let outputFormat = 'oneline'; // 'oneline' | 'multiline'
+  let seqSource    = 'structure'; // 'structure' | 'author'
   let lastChains   = null;
 
   const dropZone   = document.getElementById('drop-zone');
@@ -860,6 +900,16 @@
     convertBtn.disabled = false;
   }
 
+  // ── Sequence source selection ─────────────────────────────────
+
+  function selectSeqSource(src) {
+    seqSource = src;
+    document.getElementById('lbl-structure').classList.toggle('selected', src === 'structure');
+    document.getElementById('lbl-author').classList.toggle('selected', src === 'author');
+    // Re-convert if a file is already loaded
+    if (currentFile) convert();
+  }
+
   // ── Format selection ──────────────────────────────────────────
 
   function selectFormat(fmt) {
@@ -882,8 +932,8 @@
         const text   = e.target.result;
         const name   = currentFile.name.toLowerCase();
         const chains = name.endsWith('.cif')
-          ? parseCIF(text)
-          : parsePDB(text);
+          ? parseCIF(text, seqSource)
+          : parsePDB(text, seqSource);
 
         if (chains.length === 0) throw new Error('No protein chains found in the file.');
 
