@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antibody CDR Annotator | BioTools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:   #2563eb;
+      --blue-d: #1d4ed8;
+      --blue-l: #eff6ff;
+      --green:  #16a34a;
+      --red:    #dc2626;
+      --slate:  #64748b;
+      --bg:     #f0f4f8;
+      --card:   #ffffff;
+      --border: #e2e8f0;
+      --text:   #1e293b;
+      --cdr1-bg:  #fef3c7; --cdr1-fg:  #92400e; --cdr1-bd: #fbbf24;
+      --cdr2-bg:  #dcfce7; --cdr2-fg:  #14532d; --cdr2-bd: #4ade80;
+      --cdr3-bg:  #ffe4e6; --cdr3-fg:  #881337; --cdr3-bd: #fb7185;
+      --fr-bg:    #f1f5f9; --fr-fg:    #64748b;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%);
+      color: #fff;
+      padding: 32px 24px 28px;
+    }
+    .header-inner { max-width: 1000px; margin: 0 auto; }
+    .breadcrumb { font-size: 0.82rem; opacity: 0.75; margin-bottom: 8px; }
+    .breadcrumb a { color: inherit; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    header h1 { font-size: 1.9rem; font-weight: 700; }
+    header p  { margin-top: 6px; font-size: 0.95rem; opacity: 0.82; }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    main {
+      max-width: 1000px;
+      margin: 36px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+      border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+    }
+
+    /* ── Input ───────────────────────────────────────────── */
+    label.field-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate);
+      margin-bottom: 6px;
+    }
+    #seq-input {
+      width: 100%;
+      height: 150px;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: vertical;
+      color: var(--text);
+      background: #f8fafc;
+      transition: border-color 0.2s;
+    }
+    #seq-input:focus { outline: none; border-color: var(--blue); }
+
+    /* ── Options row ─────────────────────────────────────── */
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 18px;
+      align-items: flex-end;
+    }
+    .opt-group { display: flex; flex-direction: column; gap: 6px; }
+    .opt-group label { font-size: 0.82rem; font-weight: 600; color: var(--slate); }
+    .radio-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .radio-row label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #f8fafc;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .radio-row input[type=radio] { accent-color: var(--blue); }
+    .radio-row label:has(input:checked) {
+      background: var(--blue-l);
+      border-color: var(--blue);
+      color: var(--blue);
+      font-weight: 600;
+    }
+    select.scheme-select {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.88rem;
+      background: #f8fafc;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    select.scheme-select:focus { outline: none; border-color: var(--blue); }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+    #run-btn {
+      padding: 10px 28px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #run-btn:hover { background: var(--blue-d); }
+    .btn-secondary {
+      padding: 8px 16px;
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    /* ── Error ───────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.9rem;
+    }
+
+    /* ── Warning ─────────────────────────────────────────── */
+    .warning-box {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #92400e;
+      font-size: 0.84rem;
+      margin-bottom: 16px;
+    }
+
+    /* ── Results ─────────────────────────────────────────── */
+    #results-section { display: none; }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .results-header .card-title { margin-bottom: 0; }
+    .action-btns { display: flex; gap: 8px; }
+    .action-btn {
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .action-btn.copy { background: #f1f5f9; color: var(--text); }
+    .action-btn.copy:hover { background: #e2e8f0; }
+    .action-btn.download { background: var(--blue); color: #fff; }
+    .action-btn.download:hover { background: var(--blue-d); }
+
+    /* ── Info chips ──────────────────────────────────────── */
+    .info-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .info-chip {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      color: var(--slate);
+    }
+    .info-chip strong { color: var(--text); }
+    .info-chip.cdr1 { background: var(--cdr1-bg); border-color: var(--cdr1-bd); color: var(--cdr1-fg); }
+    .info-chip.cdr2 { background: var(--cdr2-bg); border-color: var(--cdr2-bd); color: var(--cdr2-fg); }
+    .info-chip.cdr3 { background: var(--cdr3-bg); border-color: var(--cdr3-bd); color: var(--cdr3-fg); }
+
+    /* ── Legend ──────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-swatch {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.15);
+    }
+
+    /* ── Tabs ────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--slate);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Annotated Sequence ──────────────────────────────── */
+    #seq-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.78rem;
+      line-height: 2.2;
+      word-break: break-all;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      overflow-x: auto;
+    }
+    .res {
+      display: inline-block;
+      width: 16px;
+      text-align: center;
+      border-radius: 3px;
+      position: relative;
+      cursor: default;
+      transition: filter 0.1s;
+    }
+    .res:hover { filter: brightness(0.88); }
+    .res.fr   { background: var(--fr-bg);   color: var(--fr-fg); }
+    .res.cdr1 { background: var(--cdr1-bg); color: var(--cdr1-fg); font-weight: 700; }
+    .res.cdr2 { background: var(--cdr2-bg); color: var(--cdr2-fg); font-weight: 700; }
+    .res.cdr3 { background: var(--cdr3-bg); color: var(--cdr3-fg); font-weight: 700; }
+    .res.unk  { background: #e2e8f0; color: #94a3b8; }
+
+    /* Tooltip */
+    .res[data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 3px 7px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+    }
+    .res[data-tip]:hover::after { opacity: 1; }
+
+    /* ── CDR Table ───────────────────────────────────────── */
+    .cdr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+    }
+    .cdr-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 2px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cdr-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .cdr-table tr:last-child td { border-bottom: none; }
+    .cdr-seq {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    .cdr-seq.c1 { color: var(--cdr1-fg); }
+    .cdr-seq.c2 { color: var(--cdr2-fg); }
+    .cdr-seq.c3 { color: var(--cdr3-fg); }
+    .pos-badge {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 0.75rem;
+      color: var(--slate);
+      margin-top: 3px;
+    }
+
+    /* ── Numbered Alignment ──────────────────────────────── */
+    #num-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.74rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .num-block { margin-bottom: 24px; }
+    .num-block:last-child { margin-bottom: 0; }
+    .num-pos-row { color: #94a3b8; white-space: pre; }
+    .num-seq-row { white-space: pre; }
+    .num-reg-row { white-space: pre; color: var(--slate); }
+    .nk { display: inline; }
+    .nk.fr   { color: var(--fr-fg); }
+    .nk.cdr1 { color: var(--cdr1-fg); font-weight: bold; }
+    .nk.cdr2 { color: var(--cdr2-fg); font-weight: bold; }
+    .nk.cdr3 { color: var(--cdr3-fg); font-weight: bold; }
+    .nk.unk  { color: #94a3b8; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 28px 16px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Antibody CDR Annotator</p>
+    <h1>🧪 Antibody CDR Annotator</h1>
+    <p>Identify CDR1/2/3 loops in VH/VL sequences using Kabat, Chothia, IMGT, Martin, or Contact numbering. Fully client-side.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ① Input -->
+  <div class="card">
+    <p class="card-title">① Sequence Input</p>
+    <label class="field-label" for="seq-input">Amino-acid sequence (FASTA or raw)</label>
+    <textarea id="seq-input" spellcheck="false"
+      placeholder="Paste a single VH or VL amino-acid sequence in FASTA or raw format…"></textarea>
+
+    <div class="options-row">
+      <div class="opt-group">
+        <label>Chain type</label>
+        <div class="radio-row">
+          <label><input type="radio" name="chain" value="auto" checked /> Auto-detect</label>
+          <label><input type="radio" name="chain" value="VH" /> VH</label>
+          <label><input type="radio" name="chain" value="VK" /> VL-κ (kappa)</label>
+          <label><input type="radio" name="chain" value="VL" /> VL-λ (lambda)</label>
+        </div>
+      </div>
+      <div class="opt-group">
+        <label for="scheme-select">Numbering scheme</label>
+        <select id="scheme-select" class="scheme-select">
+          <option value="Kabat">Kabat</option>
+          <option value="Chothia">Chothia</option>
+          <option value="IMGT">IMGT</option>
+          <option value="Martin">Martin (Enhanced Chothia)</option>
+          <option value="Contact">Contact</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="run-btn" onclick="runAnnotation()">⚡ Annotate CDRs</button>
+      <button class="btn-secondary" onclick="loadExample()">📋 Load example (Trastuzumab VH)</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-box"></div>
+
+  <!-- ② Results -->
+  <div class="card" id="results-section">
+    <div class="results-header">
+      <p class="card-title">② Annotation Results</p>
+      <div class="action-btns">
+        <button class="action-btn copy" onclick="copyFASTA()">⧉ Copy CDRs (FASTA)</button>
+        <button class="action-btn download" onclick="downloadTSV()">⬇ Download TSV</button>
+      </div>
+    </div>
+
+    <div id="warning-area"></div>
+    <div class="info-bar" id="info-bar"></div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--cdr1-bg);border-color:var(--cdr1-bd)"></span>CDR1</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--cdr2-bg);border-color:var(--cdr2-bd)"></span>CDR2</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--cdr3-bg);border-color:var(--cdr3-bd)"></span>CDR3</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--fr-bg)"></span>Framework</span>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('annotated', this)">Annotated Sequence</button>
+      <button class="tab-btn" onclick="showTab('cdr-table', this)">CDR Table</button>
+      <button class="tab-btn" onclick="showTab('numbered', this)">Numbered Alignment</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-annotated">
+      <div id="seq-display"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-cdr-table">
+      <table class="cdr-table" id="cdr-table"></table>
+    </div>
+
+    <div class="tab-panel" id="tab-numbered">
+      <div id="num-display"></div>
+    </div>
+  </div>
+
+  <div class="card" style="font-size:0.84rem; color:var(--slate); line-height:1.6">
+    <strong style="color:var(--text)">ℹ️ Accuracy note:</strong>
+    This tool uses Smith-Waterman alignment against canonical germline references (IGHV1-2, IGHV3-23, IGHV4-34, IGKV1-39, IGKV3-20, IGLV2-14) for numbering. It works well for typical germline-like antibody sequences. For highly mutated, synthetic, or nanobody sequences, consider
+    <a href="https://opig.stats.ox.ac.uk/webapps/newsabdab/sabpred/anarci/" target="_blank" rel="noopener">ANARCI</a> (HMM-based). CDR3 boundaries are detected by the conserved FR4 tryptophan/phenylalanine motif.
+  </div>
+
+</main>
+
+<footer>Runs entirely in your browser — no data is ever sent to any server.</footer>
+
+<script>
+/* ================================================================
+   BLOSUM62
+================================================================ */
+const BLOSUM62 = {
+  A:{A:4,R:-1,N:-2,D:-2,C:0,Q:-1,E:-1,G:0,H:-2,I:-1,L:-1,K:-1,M:-1,F:-2,P:-1,S:1,T:0,W:-3,Y:-2,V:0},
+  R:{A:-1,R:5,N:0,D:-2,C:-3,Q:1,E:0,G:-2,H:0,I:-3,L:-2,K:2,M:-1,F:-3,P:-2,S:-1,T:-1,W:-3,Y:-2,V:-3},
+  N:{A:-2,R:0,N:6,D:1,C:-3,Q:0,E:0,G:0,H:1,I:-3,L:-3,K:0,M:-2,F:-3,P:-2,S:1,T:0,W:-4,Y:-2,V:-3},
+  D:{A:-2,R:-2,N:1,D:6,C:-3,Q:0,E:2,G:-1,H:-1,I:-3,L:-4,K:-1,M:-3,F:-3,P:-1,S:0,T:-1,W:-4,Y:-3,V:-3},
+  C:{A:0,R:-3,N:-3,D:-3,C:9,Q:-3,E:-4,G:-3,H:-3,I:-1,L:-1,K:-3,M:-1,F:-2,P:-3,S:-1,T:-1,W:-2,Y:-2,V:-1},
+  Q:{A:-1,R:1,N:0,D:0,C:-3,Q:5,E:2,G:-2,H:0,I:-3,L:-2,K:1,M:0,F:-3,P:-1,S:0,T:-1,W:-2,Y:-1,V:-2},
+  E:{A:-1,R:0,N:0,D:2,C:-4,Q:2,E:5,G:-2,H:0,I:-3,L:-3,K:1,M:-2,F:-3,P:-1,S:0,T:-1,W:-3,Y:-2,V:-2},
+  G:{A:0,R:-2,N:0,D:-1,C:-3,Q:-2,E:-2,G:6,H:-2,I:-4,L:-4,K:-2,M:-3,F:-3,P:-2,S:0,T:-2,W:-2,Y:-3,V:-3},
+  H:{A:-2,R:0,N:1,D:-1,C:-3,Q:0,E:0,G:-2,H:8,I:-3,L:-3,K:-1,M:-2,F:-1,P:-2,S:-1,T:-2,W:-2,Y:2,V:-3},
+  I:{A:-1,R:-3,N:-3,D:-3,C:-1,Q:-3,E:-3,G:-4,H:-3,I:4,L:2,K:-3,M:1,F:0,P:-3,S:-2,T:-1,W:-3,Y:-1,V:3},
+  L:{A:-1,R:-2,N:-3,D:-4,C:-1,Q:-2,E:-3,G:-4,H:-3,I:2,L:4,K:-2,M:2,F:0,P:-3,S:-2,T:-1,W:-2,Y:-1,V:1},
+  K:{A:-1,R:2,N:0,D:-1,C:-3,Q:1,E:1,G:-2,H:-1,I:-3,L:-2,K:5,M:-1,F:-3,P:-1,S:0,T:-1,W:-3,Y:-2,V:-2},
+  M:{A:-1,R:-1,N:-2,D:-3,C:-1,Q:0,E:-2,G:-3,H:-2,I:1,L:2,K:-1,M:5,F:0,P:-2,S:-1,T:-1,W:-1,Y:-1,V:1},
+  F:{A:-2,R:-3,N:-3,D:-3,C:-2,Q:-3,E:-3,G:-3,H:-1,I:0,L:0,K:-3,M:0,F:6,P:-4,S:-2,T:-2,W:1,Y:3,V:-1},
+  P:{A:-1,R:-2,N:-2,D:-1,C:-3,Q:-1,E:-1,G:-2,H:-2,I:-3,L:-3,K:-1,M:-2,F:-4,P:7,S:-1,T:-1,W:-4,Y:-3,V:-2},
+  S:{A:1,R:-1,N:1,D:0,C:-1,Q:0,E:0,G:0,H:-1,I:-2,L:-2,K:0,M:-1,F:-2,P:-1,S:4,T:1,W:-3,Y:-2,V:-2},
+  T:{A:0,R:-1,N:0,D:-1,C:-1,Q:-1,E:-1,G:-2,H:-2,I:-1,L:-1,K:-1,M:-1,F:-2,P:-1,S:1,T:5,W:-2,Y:-2,V:0},
+  W:{A:-3,R:-3,N:-4,D:-4,C:-2,Q:-2,E:-3,G:-2,H:-2,I:-3,L:-2,K:-3,M:-1,F:1,P:-4,S:-3,T:-2,W:11,Y:2,V:-3},
+  Y:{A:-2,R:-2,N:-2,D:-3,C:-2,Q:-1,E:-2,G:-3,H:2,I:-1,L:-1,K:-2,M:-1,F:3,P:-3,S:-2,T:-2,W:2,Y:7,V:-1},
+  V:{A:0,R:-3,N:-3,D:-3,C:-1,Q:-2,E:-2,G:-3,H:-3,I:3,L:1,K:-2,M:1,F:-1,P:-2,S:-2,T:0,W:-3,Y:-1,V:4}
+};
+
+function b62(a, b) {
+  if (BLOSUM62[a] && BLOSUM62[a][b] !== undefined) return BLOSUM62[a][b];
+  if (BLOSUM62[b] && BLOSUM62[b][a] !== undefined) return BLOSUM62[b][a];
+  return -1;
+}
+
+/* ================================================================
+   REFERENCE GERMLINE V-REGION SEQUENCES
+   VH: Kabat positions 1-94 (FR1+CDR1+FR2+CDR2+FR3)
+   VK/VL: Kabat positions 1-88 (FR1+CDR1+FR2+CDR2+FR3)
+   Kabat position of residue i (0-indexed) = i+1
+================================================================ */
+const REFS = [
+  // ── VH references ──────────────────────────────────────
+  { id: 'IGHV1-2*02', chain: 'VH',
+    seq: 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTSYYMHWVRQAPGQGLEWMGIINPSGGSTSYAQKFQGRVTMTRDTSTSTVYMELSSLRSEDTAVY' },
+  // FR1(1-30)+CDR1(31-35)+FR2(36-49)+CDR2(50-65)+FR3(66-94) = 94 aa
+
+  { id: 'IGHV3-23*01', chain: 'VH',
+    seq: 'EVQLLESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVSAISGSGGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVY' },
+
+  { id: 'IGHV4-34*01', chain: 'VH',
+    seq: 'QVQLQESGPGLVKPSETLSLTCTVSGGSISSGYYWNWIRQHPGKGLEWIHIYYSGNTNYNPSLKSRVTISVDTSKNQFSLKLSSVTAADTAVYY' },
+
+  // ── VK references (kappa) ──────────────────────────────
+  { id: 'IGKV1-39*01', chain: 'VK',
+    seq: 'DIQMTQSPSSLSASVGDRVTITCQASQDISNYLNWYQQKPGKAPKLLIYDASNLETGVPSRFSGSGSGTDFTLTISSLQPEDFATYYC' },
+  // FR1(1-23)+CDR1(24-34)+FR2(35-49)+CDR2(50-56)+FR3(57-88) = 88 aa
+
+  { id: 'IGKV3-20*01', chain: 'VK',
+    seq: 'EIVMTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYGASSRATGVPDRFSGSGSGTDFTLTISRLEPEDFAVYYC' },
+
+  // ── VL reference (lambda) ──────────────────────────────
+  { id: 'IGLV2-14*01', chain: 'VL',
+    seq: 'SSYELTQPPSVSVAPGQTARITCGGNYIGSKSVHWYQQKPGQSPVLVIYEDDKRPSGIPERFSGSNSGNTATLTISGVQAEDEADYYC' }
+];
+
+/* ================================================================
+   CDR BOUNDARY DEFINITIONS (in Kabat position numbers)
+   Each scheme: { VH: [[cdr1lo,cdr1hi],[cdr2lo,cdr2hi],[cdr3lo,cdr3hi]],
+                  VK/VL: same structure }
+   For insertion-coded positions (e.g. 100A), base number = parseInt(label)
+   → it falls in CDR3 if its base number is within the CDR3 range.
+================================================================ */
+const CDR_SCHEMES = {
+  Kabat:   { VH: [[31,35],[50,65],[95,102]],  VK: [[24,34],[50,56],[89,97]],  VL: [[24,34],[50,56],[89,97]]  },
+  Chothia: { VH: [[26,32],[52,56],[95,102]],  VK: [[26,32],[50,52],[91,96]],  VL: [[26,32],[50,52],[91,96]]  },
+  IMGT:    { VH: [[27,38],[56,65],[95,102]],  VK: [[27,38],[56,65],[89,97]],  VL: [[27,38],[56,65],[89,97]]  },
+  Martin:  { VH: [[26,35],[50,58],[95,102]],  VK: [[24,34],[50,56],[89,97]],  VL: [[24,34],[50,56],[89,97]]  },
+  Contact: { VH: [[30,35],[47,58],[93,101]],  VK: [[27,32],[52,56],[90,96]],  VL: [[27,32],[52,56],[90,96]]  }
+};
+
+/* ================================================================
+   SEQUENCE PARSING
+================================================================ */
+function parseSeq(raw) {
+  return raw.split('\n')
+    .filter(l => !l.trimStart().startsWith('>'))
+    .join('')
+    .toUpperCase()
+    .replace(/[^ACDEFGHIKLMNPQRSTVWY]/g, '');
+}
+
+/* ================================================================
+   SMITH-WATERMAN ALIGNMENT (affine gap, BLOSUM62)
+   Returns { score, alignedQ, alignedR, qStart, rStart, qEnd, rEnd }
+   qStart/rStart: 0-indexed start positions in query/reference
+================================================================ */
+function swAlign(query, ref) {
+  const m = query.length, n = ref.length;
+  const GAP_OPEN = -11, GAP_EXT = -1;
+  const NEG = -1e9;
+  const sz = (m + 1) * (n + 1);
+  const M  = new Float32Array(sz).fill(NEG);
+  const E  = new Float32Array(sz).fill(NEG);
+  const F  = new Float32Array(sz).fill(NEG);
+  const TB_M = new Uint8Array(sz);
+  const TB_E = new Uint8Array(sz);
+  const TB_F = new Uint8Array(sz);
+  const idx = (i, j) => i * (n + 1) + j;
+
+  M[0] = 0;
+  let maxScore = NEG, maxI = 0, maxJ = 0;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const ij = idx(i, j);
+      // E: gap in query (seq2 advances)
+      const eM = M[idx(i, j-1)] + GAP_OPEN, eE = E[idx(i, j-1)] + GAP_EXT;
+      if (eM >= eE) { E[ij] = eM; TB_E[ij] = 1; } else { E[ij] = eE; TB_E[ij] = 2; }
+      // F: gap in ref (query advances)
+      const fM = M[idx(i-1, j)] + GAP_OPEN, fF = F[idx(i-1, j)] + GAP_EXT;
+      if (fM >= fF) { F[ij] = fM; TB_F[ij] = 1; } else { F[ij] = fF; TB_F[ij] = 3; }
+      // M: match/mismatch
+      const sub = b62(query[i-1], ref[j-1]);
+      let best = M[idx(i-1,j-1)] + sub, bsrc = 1;
+      if (E[ij] > best) { best = E[ij]; bsrc = 2; }
+      if (F[ij] > best) { best = F[ij]; bsrc = 3; }
+      if (best < 0) { best = 0; bsrc = 0; }
+      M[ij] = best; TB_M[ij] = bsrc;
+      if (best > maxScore) { maxScore = best; maxI = i; maxJ = j; }
+    }
+  }
+
+  if (maxScore <= 0) return null;
+
+  // Traceback
+  let i = maxI, j = maxJ, cur = 1;
+  const cQ = [], cR = [];
+  while (i > 0 || j > 0) {
+    if (cur === 1) {
+      if (M[idx(i,j)] <= 0) break;
+      const src = TB_M[idx(i,j)];
+      if (src === 0) break;
+      if (src === 1) { cQ.push(query[i-1]); cR.push(ref[j-1]); i--; j--; }
+      else { cur = src; }
+    } else if (cur === 2) {
+      const src = TB_E[idx(i,j)]; cQ.push('-'); cR.push(ref[j-1]); j--; cur = src;
+    } else {
+      const src = TB_F[idx(i,j)]; cQ.push(query[i-1]); cR.push('-'); i--; cur = src;
+    }
+  }
+  // i and j are now start positions (0-indexed) in query/ref
+  cQ.reverse(); cR.reverse();
+  return {
+    score:    maxScore,
+    alignedQ: cQ.join(''),
+    alignedR: cR.join(''),
+    qStart:   i,        // 0-indexed start in query
+    rStart:   j,        // 0-indexed start in reference
+    qEnd:     maxI - 1, // 0-indexed end in query
+    rEnd:     maxJ - 1  // 0-indexed end in reference
+  };
+}
+
+/* ================================================================
+   POSITION MAP BUILDER
+   Returns qToKab: { queryIdx (0-based) → kabatPos (integer 1-based) }
+   and lastQi (first query index after the alignment)
+================================================================ */
+function buildPosMap(aln) {
+  const { alignedQ, alignedR, qStart, rStart } = aln;
+  const qToKab = {};
+  let qi = qStart, ri = rStart;
+  for (let k = 0; k < alignedQ.length; k++) {
+    const qc = alignedQ[k], rc = alignedR[k];
+    if (qc !== '-' && rc !== '-') { qToKab[qi] = ri + 1; qi++; ri++; }
+    else if (qc !== '-') { qi++; }  // insertion in query; no Kabat label yet
+    else { ri++; }                  // deletion in query
+  }
+  return { qToKab, lastQi: qi, lastRi: ri };
+}
+
+/* ================================================================
+   CDR3 KABAT NUMBERING
+   VH CDR3 positions: 95,96,...,100,100A,100B,...,101,102
+   VK/VL CDR3 positions: 89,90,...,95,95A,95B,...,96,97
+================================================================ */
+function cdr3Labels(L, chainType) {
+  if (L <= 0) return [];
+  if (chainType === 'VH') {
+    if (L <= 8) return Array.from({length: L}, (_, i) => String(95 + i));
+    const labels = [];
+    for (let i = 0; i < 6; i++) labels.push(String(95 + i)); // 95..100
+    const ins = L - 8;
+    for (let i = 0; i < ins; i++) labels.push('100' + String.fromCharCode(65 + i)); // 100A..
+    labels.push('101'); labels.push('102');
+    return labels;
+  } else {
+    if (L <= 9) return Array.from({length: L}, (_, i) => String(89 + i));
+    const labels = [];
+    for (let i = 0; i < 7; i++) labels.push(String(89 + i)); // 89..95
+    const ins = L - 9;
+    for (let i = 0; i < ins; i++) labels.push('95' + String.fromCharCode(65 + i)); // 95A..
+    labels.push('96'); labels.push('97');
+    return labels;
+  }
+}
+
+/* ================================================================
+   FR4 DETECTION
+   Searches for the last WG (VH) or FG/WG (VK/VL) in the CDR3+FR4 tail.
+   Returns index in tail where FR4 starts, or -1.
+================================================================ */
+function findFR4(tail, chainType) {
+  let found = -1;
+  // Search from position 3 onward (min CDR3 = 3 aa)
+  for (let i = 3; i < tail.length - 1; i++) {
+    if (chainType === 'VH') {
+      if (tail[i] === 'W' && tail[i+1] === 'G') found = i;
+    } else {
+      if ((tail[i] === 'F' || tail[i] === 'W') && tail[i+1] === 'G') found = i;
+    }
+  }
+  return found;
+}
+
+/* ================================================================
+   REGION CLASSIFIER
+   Given a Kabat position label (string like "31","100A"),
+   returns 'CDR1'|'CDR2'|'CDR3'|'FR1'|'FR2'|'FR3'|'FR4'
+================================================================ */
+function getRegion(posLabel, chainType, scheme) {
+  const pos = parseInt(posLabel, 10);
+  const defs = CDR_SCHEMES[scheme][chainType] || CDR_SCHEMES[scheme]['VK'];
+  const [[c1l,c1h],[c2l,c2h],[c3l,c3h]] = defs;
+  if (pos >= c1l && pos <= c1h) return 'CDR1';
+  if (pos >= c2l && pos <= c2h) return 'CDR2';
+  if (pos >= c3l && pos <= c3h) return 'CDR3';
+  // FR boundaries
+  const refLen = chainType === 'VH' ? 94 : 88;
+  const fr4Start = chainType === 'VH' ? 103 : 98;
+  if (pos <= refLen) {
+    if (pos < c1l) return 'FR1';
+    if (pos > c1h && pos < c2l) return 'FR2';
+    if (pos > c2h && pos < c3l) return 'FR3';
+    return 'FR3'; // fallback
+  }
+  if (pos >= fr4Start) return 'FR4';
+  return 'CDR3'; // between reference end and FR4
+}
+
+/* ================================================================
+   MAIN ANNOTATION FUNCTION
+   Returns array of { aa, pos (string label), region }
+================================================================ */
+function annotate(seq, chainHint, scheme) {
+  // 1. Select candidate references
+  let candidates;
+  if (chainHint === 'auto') {
+    candidates = REFS;
+  } else {
+    candidates = REFS.filter(r => r.chain === chainHint);
+    if (candidates.length === 0) candidates = REFS; // fallback
+  }
+
+  // 2. Find best-matching reference via SW
+  let best = null, bestRef = null;
+  for (const ref of candidates) {
+    const aln = swAlign(seq, ref.seq);
+    if (!aln) continue;
+    if (!best || aln.score > best.score) { best = aln; bestRef = ref; }
+  }
+  if (!best || !bestRef) return null;
+
+  const chainType = bestRef.chain;
+
+  // 3. Build Kabat position map for the aligned (FR1-FR3) region
+  const { qToKab, lastQi } = buildPosMap(best);
+
+  // 4. Detect CDR3 and FR4 in the tail
+  const tail = seq.slice(lastQi);
+  const fr4Idx = tail.length > 0 ? findFR4(tail, chainType) : -1;
+
+  // CDR3 residues: tail[0..fr4Idx-1] (or all if fr4 not found)
+  const cdr3End = fr4Idx >= 0 ? fr4Idx : tail.length;
+  const cdr3Seq = tail.slice(0, cdr3End);
+  const fr4Seq  = fr4Idx >= 0 ? tail.slice(fr4Idx) : '';
+
+  const cdr3Pos = cdr3Labels(cdr3Seq.length, chainType);
+  const fr4StartNum = chainType === 'VH' ? 103 : 98;
+
+  // 5. Build full annotation array
+  const result = [];
+
+  // Residues before the alignment (N-terminal extension or signal peptide)
+  for (let i = 0; i < best.qStart; i++) {
+    result.push({ aa: seq[i], pos: null, region: 'unknown' });
+  }
+
+  // Aligned region (FR1-FR3)
+  // Walk through aligned strings to assign positions
+  let qi = best.qStart, ri = best.rStart;
+  for (let k = 0; k < best.alignedQ.length; k++) {
+    const qc = best.alignedQ[k], rc = best.alignedR[k];
+    if (qc === '-') { ri++; continue; } // deleted in query, skip
+    if (rc === '-') {
+      // Insertion in query relative to reference — assign neighboring position with insertion code
+      const prevKab = qToKab[qi - 1];
+      const posLabel = prevKab != null ? prevKab + 'i' : null;
+      const region = posLabel ? getRegion(posLabel, chainType, scheme) : 'unknown';
+      result.push({ aa: qc, pos: posLabel, region });
+      qi++;
+    } else {
+      const kabPos = ri + 1; // Kabat position (1-based)
+      const posLabel = String(kabPos);
+      result.push({ aa: qc, pos: posLabel, region: getRegion(posLabel, chainType, scheme) });
+      qi++; ri++;
+    }
+  }
+
+  // CDR3
+  for (let i = 0; i < cdr3Seq.length; i++) {
+    const posLabel = cdr3Pos[i] || String(95 + i);
+    result.push({ aa: cdr3Seq[i], pos: posLabel, region: 'CDR3' });
+  }
+
+  // FR4
+  for (let i = 0; i < fr4Seq.length; i++) {
+    const posLabel = String(fr4StartNum + i);
+    result.push({ aa: fr4Seq[i], pos: posLabel, region: 'FR4' });
+  }
+
+  return { residues: result, chainType, refId: bestRef.id, alnScore: best.score, scheme };
+}
+
+/* ================================================================
+   REGION CLASS HELPER
+================================================================ */
+function regionClass(region) {
+  if (region === 'CDR1') return 'cdr1';
+  if (region === 'CDR2') return 'cdr2';
+  if (region === 'CDR3') return 'cdr3';
+  if (region === 'FR1' || region === 'FR2' || region === 'FR3' || region === 'FR4') return 'fr';
+  return 'unk';
+}
+
+/* ================================================================
+   RENDERING — Annotated Sequence
+================================================================ */
+function renderAnnotated(res) {
+  const html = res.residues.map(r => {
+    const cls = regionClass(r.region);
+    const tip = r.pos ? `${r.pos} · ${r.region}` : r.region;
+    return `<span class="res ${cls}" data-tip="${tip}">${r.aa}</span>`;
+  }).join('');
+  document.getElementById('seq-display').innerHTML = html;
+}
+
+/* ================================================================
+   RENDERING — CDR Table
+================================================================ */
+function renderCDRTable(res) {
+  const { residues, chainType, scheme } = res;
+  const cdrs = [
+    { name: 'CDR1', cls: 'c1', seq: '', start: null, end: null },
+    { name: 'CDR2', cls: 'c2', seq: '', start: null, end: null },
+    { name: 'CDR3', cls: 'c3', seq: '', start: null, end: null }
+  ];
+  let qIdx = 1;
+  for (const r of residues) {
+    for (const cdr of cdrs) {
+      if (r.region === cdr.name) {
+        cdr.seq += r.aa;
+        if (cdr.start === null) cdr.start = qIdx;
+        cdr.end = qIdx;
+      }
+    }
+    qIdx++;
+  }
+
+  const defs = CDR_SCHEMES[scheme][chainType] || CDR_SCHEMES[scheme]['VK'];
+  let html = `<thead><tr>
+    <th>CDR</th><th>Sequence</th><th>Length</th>
+    <th>Query position (1-based)</th><th>Kabat range (${scheme})</th>
+  </tr></thead><tbody>`;
+  cdrs.forEach((cdr, i) => {
+    const kabRange = defs[i] ? `${defs[i][0]}–${defs[i][1]}` : '—';
+    const pos = cdr.start != null ? `${cdr.start}–${cdr.end}` : '—';
+    const seq = cdr.seq || '—';
+    html += `<tr>
+      <td><strong>${cdr.name}</strong></td>
+      <td><span class="cdr-seq ${cdr.cls}">${seq}</span></td>
+      <td>${cdr.seq.length || 0}</td>
+      <td><span class="pos-badge">${pos}</span></td>
+      <td><span class="pos-badge">${kabRange}</span></td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('cdr-table').innerHTML = html;
+}
+
+/* ================================================================
+   RENDERING — Numbered Alignment View
+   Shows residues in rows of COLS with position numbers above
+================================================================ */
+function renderNumbered(res) {
+  const { residues, scheme } = res;
+  const COLS = 30;
+  const labeled = residues.filter(r => r.pos !== null);
+  const all = residues; // includes unknowns
+
+  let html = '';
+  for (let start = 0; start < all.length; start += COLS) {
+    const chunk = all.slice(start, start + COLS);
+
+    // Position row
+    let posRow = '';
+    for (const r of chunk) {
+      const lbl = r.pos != null ? r.pos : '?';
+      posRow += lbl.padStart(3);
+    }
+
+    // Sequence row (with region coloring)
+    let seqRow = '';
+    for (const r of chunk) {
+      const cls = regionClass(r.region);
+      seqRow += `<span class="nk ${cls}">${('  ' + r.aa).slice(-3)}</span>`;
+    }
+
+    // Region row
+    let regRow = '';
+    for (const r of chunk) {
+      const abbr = r.region === 'CDR1' ? ' C1' : r.region === 'CDR2' ? ' C2'
+                 : r.region === 'CDR3' ? ' C3' : r.region.startsWith('FR') ? (' ' + r.region).slice(-3) : '  ?';
+      regRow += abbr;
+    }
+
+    html += `<div class="num-block">
+      <div class="num-pos-row">${posRow}</div>
+      <div class="num-seq-row">${seqRow}</div>
+      <div class="num-reg-row">${regRow}</div>
+    </div>`;
+  }
+  document.getElementById('num-display').innerHTML = html;
+}
+
+/* ================================================================
+   RENDERING — Info bar
+================================================================ */
+function renderInfoBar(res) {
+  const { residues, chainType, refId, alnScore, scheme } = res;
+  const cdr1 = residues.filter(r => r.region === 'CDR1').map(r => r.aa).join('');
+  const cdr2 = residues.filter(r => r.region === 'CDR2').map(r => r.aa).join('');
+  const cdr3 = residues.filter(r => r.region === 'CDR3').map(r => r.aa).join('');
+
+  document.getElementById('info-bar').innerHTML = `
+    <span class="info-chip">Chain: <strong>${chainType}</strong></span>
+    <span class="info-chip">Best ref: <strong>${refId}</strong></span>
+    <span class="info-chip">Scheme: <strong>${scheme}</strong></span>
+    <span class="info-chip">Aln score: <strong>${Math.round(alnScore)}</strong></span>
+    <span class="info-chip cdr1">CDR1: <strong>${cdr1 || '—'}</strong> (${cdr1.length} aa)</span>
+    <span class="info-chip cdr2">CDR2: <strong>${cdr2 || '—'}</strong> (${cdr2.length} aa)</span>
+    <span class="info-chip cdr3">CDR3: <strong>${cdr3 || '—'}</strong> (${cdr3.length} aa)</span>
+  `;
+}
+
+/* ================================================================
+   EXPORT HELPERS
+================================================================ */
+let _lastResult = null;
+
+function copyFASTA() {
+  if (!_lastResult) return;
+  const { residues, chainType, scheme } = _lastResult;
+  const cdrs = ['CDR1','CDR2','CDR3'];
+  let text = '';
+  for (const name of cdrs) {
+    const seq = residues.filter(r => r.region === name).map(r => r.aa).join('');
+    if (seq) text += `>${chainType}_${name}_${scheme}\n${seq}\n`;
+  }
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+
+function downloadTSV() {
+  if (!_lastResult) return;
+  const { residues, chainType, scheme, refId } = _lastResult;
+  let tsv = `# Antibody CDR Annotator | Scheme: ${scheme} | Chain: ${chainType} | Reference: ${refId}\n`;
+  tsv += 'QueryPos\tAA\tKabatPos\tRegion\n';
+  residues.forEach((r, i) => {
+    tsv += `${i+1}\t${r.aa}\t${r.pos ?? ''}\t${r.region}\n`;
+  });
+  const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cdr_annotation_${scheme}.tsv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ================================================================
+   UI HANDLERS
+================================================================ */
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function clearError() {
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function runAnnotation() {
+  clearError();
+  const raw = document.getElementById('seq-input').value.trim();
+  if (!raw) { showError('Please paste a sequence.'); return; }
+
+  const seq = parseSeq(raw);
+  if (seq.length < 50) {
+    showError('Sequence too short (< 50 amino acids). Please provide a complete VH or VL variable domain.');
+    return;
+  }
+  if (seq.length > 600) {
+    showError('Sequence too long (> 600 amino acids). Please provide a single variable domain.');
+    return;
+  }
+
+  const chainHint = document.querySelector('input[name=chain]:checked').value;
+  const scheme = document.getElementById('scheme-select').value;
+
+  const res = annotate(seq, chainHint, scheme);
+  if (!res) {
+    showError('Alignment failed — no suitable reference matched the query. Check the sequence is a valid antibody variable domain.');
+    return;
+  }
+
+  _lastResult = res;
+
+  // Warnings
+  const warnArea = document.getElementById('warning-area');
+  const warns = [];
+  const fr4Count = res.residues.filter(r => r.region === 'FR4').length;
+  if (fr4Count === 0) warns.push('FR4 (J-gene) motif not found — the sequence may be truncated before FR4, or CDR3 numbering may be approximate.');
+  if (res.residues.filter(r => r.region === 'CDR3').length === 0) warns.push('No CDR3 residues identified. The sequence may end before the CDR3.');
+  if (chainHint === 'auto') {
+    const detected = res.chainType;
+    warns.push(`Chain auto-detected as <strong>${detected}</strong> (best match: ${res.refId}).`);
+  }
+  warnArea.innerHTML = warns.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('');
+
+  renderInfoBar(res);
+  renderAnnotated(res);
+  renderCDRTable(res);
+  renderNumbered(res);
+
+  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function loadExample() {
+  document.getElementById('seq-input').value =
+`>Trastuzumab_VH (IGHV3-66/IGHV3-23 family)
+EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTIS
+ADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSS`;
+  document.querySelector('input[name=chain][value=auto]').checked = true;
+  document.getElementById('scheme-select').value = 'Kabat';
+}
+</script>
+
+</body>
+</html>
