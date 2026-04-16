@@ -798,9 +798,10 @@ function annotate(seq, chainHint, scheme) {
     const qc = best.alignedQ[k], rc = best.alignedR[k];
     if (qc === '-') { ri++; continue; } // deleted in query, skip
     if (rc === '-') {
-      // Insertion in query relative to reference — assign neighboring position with insertion code
+      // Insertion in query relative to reference — use base Kabat number of preceding residue
+      // e.g. after Kabat 35 → '35x'; parseInt('35x') = 35, classifying correctly into region
       const prevKab = qToKab[qi - 1];
-      const posLabel = prevKab != null ? prevKab + 'i' : null;
+      const posLabel = prevKab != null ? String(prevKab) + 'x' : null;
       const region = posLabel ? getRegion(posLabel, chainType, scheme) : 'unknown';
       result.push({ aa: qc, pos: posLabel, region });
       qi++;
@@ -812,9 +813,10 @@ function annotate(seq, chainHint, scheme) {
     }
   }
 
-  // CDR3
+  // CDR3 — cdr3Pos is always exactly cdr3Seq.length entries; fallback uses chain-correct start
+  const cdr3StartNum = chainType === 'VH' ? 95 : 89;
   for (let i = 0; i < cdr3Seq.length; i++) {
-    const posLabel = cdr3Pos[i] || String(95 + i);
+    const posLabel = cdr3Pos[i] ?? String(cdr3StartNum + i);
     result.push({ aa: cdr3Seq[i], pos: posLabel, region: 'CDR3' });
   }
 
@@ -860,16 +862,16 @@ function renderCDRTable(res) {
     { name: 'CDR2', cls: 'c2', seq: '', start: null, end: null },
     { name: 'CDR3', cls: 'c3', seq: '', start: null, end: null }
   ];
-  let qIdx = 1;
+  let queryPos = 1;
   for (const r of residues) {
     for (const cdr of cdrs) {
       if (r.region === cdr.name) {
         cdr.seq += r.aa;
-        if (cdr.start === null) cdr.start = qIdx;
-        cdr.end = qIdx;
+        if (cdr.start === null) cdr.start = queryPos;
+        cdr.end = queryPos;
       }
     }
-    qIdx++;
+    queryPos++;
   }
 
   const defs = CDR_SCHEMES[scheme][chainType] || CDR_SCHEMES[scheme]['VK'];
@@ -973,9 +975,11 @@ function copyFASTA() {
     if (seq) text += `>${chainType}_${name}_${scheme}\n${seq}\n`;
   }
   navigator.clipboard.writeText(text).catch(() => {
+    // Fallback for browsers that don't support the Clipboard API
     const ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
+    document.execCommand('copy'); // eslint-disable-line -- deprecated but widely supported fallback
+    document.body.removeChild(ta);
   });
 }
 
