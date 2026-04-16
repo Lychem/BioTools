@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Antibody CDR Annotator | BioTools</title>
+  <script src="immunum-browser.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -393,6 +394,10 @@
       color: #94a3b8;
       font-size: 0.82rem;
     }
+    .header-link {
+      color: rgba(255,255,255,.85);
+      text-underline-offset: 2px;
+    }
   </style>
 </head>
 <body>
@@ -401,7 +406,7 @@
   <div class="header-inner">
     <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Antibody CDR Annotator</p>
     <h1>🧪 Antibody CDR Annotator</h1>
-    <p>Identify CDR1/2/3 loops in VH/VL sequences using Kabat, Chothia, IMGT, Martin, or Contact numbering. Fully client-side.</p>
+    <p>Identify CDR1/2/3 loops in VH/VL sequences using Kabat or IMGT numbering, powered by <a href="https://immunum.enpicom.com" target="_blank" rel="noopener" class="header-link">immunum</a>. Fully client-side.</p>
   </div>
 </header>
 
@@ -428,16 +433,13 @@
         <label for="scheme-select">Numbering scheme</label>
         <select id="scheme-select" class="scheme-select">
           <option value="Kabat">Kabat</option>
-          <option value="Chothia">Chothia</option>
           <option value="IMGT">IMGT</option>
-          <option value="Martin">Martin (Enhanced Chothia)</option>
-          <option value="Contact">Contact</option>
         </select>
       </div>
     </div>
 
     <div class="btn-row">
-      <button id="run-btn" onclick="runAnnotation()">⚡ Annotate CDRs</button>
+      <button id="run-btn" onclick="runAnnotation()" disabled>⏳ Loading…</button>
       <button class="btn-secondary" onclick="loadExample()">📋 Load example (Trastuzumab VH)</button>
     </div>
   </div>
@@ -486,8 +488,9 @@
 
   <div class="card" style="font-size:0.84rem; color:var(--slate); line-height:1.6">
     <strong style="color:var(--text)">ℹ️ Accuracy note:</strong>
-    This tool uses Smith-Waterman alignment against canonical germline references (IGHV1-2, IGHV3-23, IGHV4-34, IGKV1-39, IGKV3-20, IGLV2-14) for numbering. It works well for typical germline-like antibody sequences. For highly mutated, synthetic, or nanobody sequences, consider
-    <a href="https://opig.stats.ox.ac.uk/webapps/newsabdab/sabpred/anarci/" target="_blank" rel="noopener">ANARCI</a> (HMM-based). CDR3 boundaries are detected by the conserved FR4 tryptophan/phenylalanine motif.
+    CDR annotation is powered by <a href="https://immunum.enpicom.com" target="_blank" rel="noopener">immunum</a>,
+    which uses Needleman-Wunsch semi-global alignment with PSSM scoring matrices for accurate antibody (IGH/IGK/IGL)
+    numbering. Kabat and IMGT schemes are supported.
   </div>
 
 </main>
@@ -496,82 +499,28 @@
 
 <script>
 /* ================================================================
-   BLOSUM62
+   IMMUNUM INTEGRATION
+   Uses the immunum WASM package for CDR annotation.
+   initImmun() and ImmunumAnnotator are provided by immunum-browser.js
 ================================================================ */
-const BLOSUM62 = {
-  A:{A:4,R:-1,N:-2,D:-2,C:0,Q:-1,E:-1,G:0,H:-2,I:-1,L:-1,K:-1,M:-1,F:-2,P:-1,S:1,T:0,W:-3,Y:-2,V:0},
-  R:{A:-1,R:5,N:0,D:-2,C:-3,Q:1,E:0,G:-2,H:0,I:-3,L:-2,K:2,M:-1,F:-3,P:-2,S:-1,T:-1,W:-3,Y:-2,V:-3},
-  N:{A:-2,R:0,N:6,D:1,C:-3,Q:0,E:0,G:0,H:1,I:-3,L:-3,K:0,M:-2,F:-3,P:-2,S:1,T:0,W:-4,Y:-2,V:-3},
-  D:{A:-2,R:-2,N:1,D:6,C:-3,Q:0,E:2,G:-1,H:-1,I:-3,L:-4,K:-1,M:-3,F:-3,P:-1,S:0,T:-1,W:-4,Y:-3,V:-3},
-  C:{A:0,R:-3,N:-3,D:-3,C:9,Q:-3,E:-4,G:-3,H:-3,I:-1,L:-1,K:-3,M:-1,F:-2,P:-3,S:-1,T:-1,W:-2,Y:-2,V:-1},
-  Q:{A:-1,R:1,N:0,D:0,C:-3,Q:5,E:2,G:-2,H:0,I:-3,L:-2,K:1,M:0,F:-3,P:-1,S:0,T:-1,W:-2,Y:-1,V:-2},
-  E:{A:-1,R:0,N:0,D:2,C:-4,Q:2,E:5,G:-2,H:0,I:-3,L:-3,K:1,M:-2,F:-3,P:-1,S:0,T:-1,W:-3,Y:-2,V:-2},
-  G:{A:0,R:-2,N:0,D:-1,C:-3,Q:-2,E:-2,G:6,H:-2,I:-4,L:-4,K:-2,M:-3,F:-3,P:-2,S:0,T:-2,W:-2,Y:-3,V:-3},
-  H:{A:-2,R:0,N:1,D:-1,C:-3,Q:0,E:0,G:-2,H:8,I:-3,L:-3,K:-1,M:-2,F:-1,P:-2,S:-1,T:-2,W:-2,Y:2,V:-3},
-  I:{A:-1,R:-3,N:-3,D:-3,C:-1,Q:-3,E:-3,G:-4,H:-3,I:4,L:2,K:-3,M:1,F:0,P:-3,S:-2,T:-1,W:-3,Y:-1,V:3},
-  L:{A:-1,R:-2,N:-3,D:-4,C:-1,Q:-2,E:-3,G:-4,H:-3,I:2,L:4,K:-2,M:2,F:0,P:-3,S:-2,T:-1,W:-2,Y:-1,V:1},
-  K:{A:-1,R:2,N:0,D:-1,C:-3,Q:1,E:1,G:-2,H:-1,I:-3,L:-2,K:5,M:-1,F:-3,P:-1,S:0,T:-1,W:-3,Y:-2,V:-2},
-  M:{A:-1,R:-1,N:-2,D:-3,C:-1,Q:0,E:-2,G:-3,H:-2,I:1,L:2,K:-1,M:5,F:0,P:-2,S:-1,T:-1,W:-1,Y:-1,V:1},
-  F:{A:-2,R:-3,N:-3,D:-3,C:-2,Q:-3,E:-3,G:-3,H:-1,I:0,L:0,K:-3,M:0,F:6,P:-4,S:-2,T:-2,W:1,Y:3,V:-1},
-  P:{A:-1,R:-2,N:-2,D:-1,C:-3,Q:-1,E:-1,G:-2,H:-2,I:-3,L:-3,K:-1,M:-2,F:-4,P:7,S:-1,T:-1,W:-4,Y:-3,V:-2},
-  S:{A:1,R:-1,N:1,D:0,C:-1,Q:0,E:0,G:0,H:-1,I:-2,L:-2,K:0,M:-1,F:-2,P:-1,S:4,T:1,W:-3,Y:-2,V:-2},
-  T:{A:0,R:-1,N:0,D:-1,C:-1,Q:-1,E:-1,G:-2,H:-2,I:-1,L:-1,K:-1,M:-1,F:-2,P:-1,S:1,T:5,W:-2,Y:-2,V:0},
-  W:{A:-3,R:-3,N:-4,D:-4,C:-2,Q:-2,E:-3,G:-2,H:-2,I:-3,L:-2,K:-3,M:-1,F:1,P:-4,S:-3,T:-2,W:11,Y:2,V:-3},
-  Y:{A:-2,R:-2,N:-2,D:-3,C:-2,Q:-1,E:-2,G:-3,H:2,I:-1,L:-1,K:-2,M:-1,F:3,P:-3,S:-2,T:-2,W:2,Y:7,V:-1},
-  V:{A:0,R:-3,N:-3,D:-3,C:-1,Q:-2,E:-2,G:-3,H:-3,I:3,L:1,K:-2,M:1,F:-1,P:-2,S:-2,T:0,W:-3,Y:-1,V:4}
-};
 
-function b62(a, b) {
-  if (BLOSUM62[a] && BLOSUM62[a][b] !== undefined) return BLOSUM62[a][b];
-  if (BLOSUM62[b] && BLOSUM62[b][a] !== undefined) return BLOSUM62[b][a];
-  return -1;
-}
+/* ----------------------------------------------------------------
+   WASM initialisation — called once on page load
+---------------------------------------------------------------- */
+let _immunumReady = false;
 
-/* ================================================================
-   REFERENCE GERMLINE V-REGION SEQUENCES
-   VH: Kabat positions 1-94 (FR1+CDR1+FR2+CDR2+FR3)
-   VK/VL: Kabat positions 1-88 (FR1+CDR1+FR2+CDR2+FR3)
-   Kabat position of residue i (0-indexed) = i+1
-================================================================ */
-const REFS = [
-  // ── VH references ──────────────────────────────────────
-  { id: 'IGHV1-2*02', chain: 'VH',
-    seq: 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTSYYMHWVRQAPGQGLEWMGIINPSGGSTSYAQKFQGRVTMTRDTSTSTVYMELSSLRSEDTAVY' },
-  // FR1(1-30)+CDR1(31-35)+FR2(36-49)+CDR2(50-65)+FR3(66-94) = 94 aa
-
-  { id: 'IGHV3-23*01', chain: 'VH',
-    seq: 'EVQLLESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVSAISGSGGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVY' },
-
-  { id: 'IGHV4-34*01', chain: 'VH',
-    seq: 'QVQLQESGPGLVKPSETLSLTCTVSGGSISSGYYWNWIRQHPGKGLEWIHIYYSGNTNYNPSLKSRVTISVDTSKNQFSLKLSSVTAADTAVYY' },
-
-  // ── VK references (kappa) ──────────────────────────────
-  { id: 'IGKV1-39*01', chain: 'VK',
-    seq: 'DIQMTQSPSSLSASVGDRVTITCQASQDISNYLNWYQQKPGKAPKLLIYDASNLETGVPSRFSGSGSGTDFTLTISSLQPEDFATYYC' },
-  // FR1(1-23)+CDR1(24-34)+FR2(35-49)+CDR2(50-56)+FR3(57-88) = 88 aa
-
-  { id: 'IGKV3-20*01', chain: 'VK',
-    seq: 'EIVMTQSPATLSLSPGERATLSCRASQSVSSYLAWYQQKPGQAPRLLIYGASSRATGVPDRFSGSGSGTDFTLTISRLEPEDFAVYYC' },
-
-  // ── VL reference (lambda) ──────────────────────────────
-  { id: 'IGLV2-14*01', chain: 'VL',
-    seq: 'SSYELTQPPSVSVAPGQTARITCGGNYIGSKSVHWYQQKPGQSPVLVIYEDDKRPSGIPERFSGSNSGNTATLTISGVQAEDEADYYC' }
-];
-
-/* ================================================================
-   CDR BOUNDARY DEFINITIONS (in Kabat position numbers)
-   Each scheme: { VH: [[cdr1lo,cdr1hi],[cdr2lo,cdr2hi],[cdr3lo,cdr3hi]],
-                  VK/VL: same structure }
-   For insertion-coded positions (e.g. 100A), base number = parseInt(label)
-   → it falls in CDR3 if its base number is within the CDR3 range.
-================================================================ */
-const CDR_SCHEMES = {
-  Kabat:   { VH: [[31,35],[50,65],[95,102]],  VK: [[24,34],[50,56],[89,97]],  VL: [[24,34],[50,56],[89,97]]  },
-  Chothia: { VH: [[26,32],[52,56],[95,102]],  VK: [[26,32],[50,52],[91,96]],  VL: [[26,32],[50,52],[91,96]]  },
-  IMGT:    { VH: [[27,38],[56,65],[95,102]],  VK: [[27,38],[56,65],[89,97]],  VL: [[27,38],[56,65],[89,97]]  },
-  Martin:  { VH: [[26,35],[50,58],[95,102]],  VK: [[24,34],[50,56],[89,97]],  VL: [[24,34],[50,56],[89,97]]  },
-  Contact: { VH: [[30,35],[47,58],[93,101]],  VK: [[27,32],[52,56],[90,96]],  VL: [[27,32],[52,56],[90,96]]  }
-};
+(async () => {
+  try {
+    await initImmun('immunum_bg.wasm');
+    _immunumReady = true;
+    const btn = document.getElementById('run-btn');
+    btn.disabled = false;
+    btn.textContent = '⚡ Annotate CDRs';
+  } catch (e) {
+    document.getElementById('run-btn').textContent = '❌ Failed to load';
+    showError('Failed to load the immunum WASM module: ' + e.message);
+  }
+})();
 
 /* ================================================================
    SEQUENCE PARSING
@@ -585,248 +534,61 @@ function parseSeq(raw) {
 }
 
 /* ================================================================
-   SMITH-WATERMAN ALIGNMENT (affine gap, BLOSUM62)
-   Returns { score, alignedQ, alignedR, qStart, rStart, qEnd, rEnd }
-   qStart/rStart: 0-indexed start positions in query/reference
-================================================================ */
-function swAlign(query, ref) {
-  const m = query.length, n = ref.length;
-  const GAP_OPEN = -11, GAP_EXT = -1;
-  const NEG = -1e9;
-  const sz = (m + 1) * (n + 1);
-  const M  = new Float32Array(sz).fill(NEG);
-  const E  = new Float32Array(sz).fill(NEG);
-  const F  = new Float32Array(sz).fill(NEG);
-  const TB_M = new Uint8Array(sz);
-  const TB_E = new Uint8Array(sz);
-  const TB_F = new Uint8Array(sz);
-  const idx = (i, j) => i * (n + 1) + j;
-
-  M[0] = 0;
-  let maxScore = NEG, maxI = 0, maxJ = 0;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const ij = idx(i, j);
-      // E: gap in query (seq2 advances)
-      const eM = M[idx(i, j-1)] + GAP_OPEN, eE = E[idx(i, j-1)] + GAP_EXT;
-      if (eM >= eE) { E[ij] = eM; TB_E[ij] = 1; } else { E[ij] = eE; TB_E[ij] = 2; }
-      // F: gap in ref (query advances)
-      const fM = M[idx(i-1, j)] + GAP_OPEN, fF = F[idx(i-1, j)] + GAP_EXT;
-      if (fM >= fF) { F[ij] = fM; TB_F[ij] = 1; } else { F[ij] = fF; TB_F[ij] = 3; }
-      // M: match/mismatch
-      const sub = b62(query[i-1], ref[j-1]);
-      let best = M[idx(i-1,j-1)] + sub, bsrc = 1;
-      if (E[ij] > best) { best = E[ij]; bsrc = 2; }
-      if (F[ij] > best) { best = F[ij]; bsrc = 3; }
-      if (best < 0) { best = 0; bsrc = 0; }
-      M[ij] = best; TB_M[ij] = bsrc;
-      if (best > maxScore) { maxScore = best; maxI = i; maxJ = j; }
-    }
-  }
-
-  if (maxScore <= 0) return null;
-
-  // Traceback
-  let i = maxI, j = maxJ, cur = 1;
-  const cQ = [], cR = [];
-  while (i > 0 || j > 0) {
-    if (cur === 1) {
-      if (M[idx(i,j)] <= 0) break;
-      const src = TB_M[idx(i,j)];
-      if (src === 0) break;
-      if (src === 1) { cQ.push(query[i-1]); cR.push(ref[j-1]); i--; j--; }
-      else { cur = src; }
-    } else if (cur === 2) {
-      const src = TB_E[idx(i,j)]; cQ.push('-'); cR.push(ref[j-1]); j--; cur = src;
-    } else {
-      const src = TB_F[idx(i,j)]; cQ.push(query[i-1]); cR.push('-'); i--; cur = src;
-    }
-  }
-  // i and j are now start positions (0-indexed) in query/ref
-  cQ.reverse(); cR.reverse();
-  return {
-    score:    maxScore,
-    alignedQ: cQ.join(''),
-    alignedR: cR.join(''),
-    qStart:   i,        // 0-indexed start in query
-    rStart:   j,        // 0-indexed start in reference
-    qEnd:     maxI - 1, // 0-indexed end in query
-    rEnd:     maxJ - 1  // 0-indexed end in reference
-  };
-}
-
-/* ================================================================
-   POSITION MAP BUILDER
-   Returns qToKab: { queryIdx (0-based) → kabatPos (integer 1-based) }
-   and lastQi (first query index after the alignment)
-================================================================ */
-function buildPosMap(aln) {
-  const { alignedQ, alignedR, qStart, rStart } = aln;
-  const qToKab = {};
-  let qi = qStart, ri = rStart;
-  for (let k = 0; k < alignedQ.length; k++) {
-    const qc = alignedQ[k], rc = alignedR[k];
-    if (qc !== '-' && rc !== '-') { qToKab[qi] = ri + 1; qi++; ri++; }
-    else if (qc !== '-') { qi++; }  // insertion in query; no Kabat label yet
-    else { ri++; }                  // deletion in query
-  }
-  return { qToKab, lastQi: qi, lastRi: ri };
-}
-
-/* ================================================================
-   CDR3 KABAT NUMBERING
-   VH CDR3 positions: 95,96,...,100,100A,100B,...,101,102
-   VK/VL CDR3 positions: 89,90,...,95,95A,95B,...,96,97
-================================================================ */
-function cdr3Labels(L, chainType) {
-  if (L <= 0) return [];
-  if (chainType === 'VH') {
-    if (L <= 8) return Array.from({length: L}, (_, i) => String(95 + i));
-    const labels = [];
-    for (let i = 0; i < 6; i++) labels.push(String(95 + i)); // 95..100
-    const ins = L - 8;
-    for (let i = 0; i < ins; i++) labels.push('100' + String.fromCharCode(65 + i)); // 100A..
-    labels.push('101'); labels.push('102');
-    return labels;
-  } else {
-    if (L <= 9) return Array.from({length: L}, (_, i) => String(89 + i));
-    const labels = [];
-    for (let i = 0; i < 7; i++) labels.push(String(89 + i)); // 89..95
-    const ins = L - 9;
-    for (let i = 0; i < ins; i++) labels.push('95' + String.fromCharCode(65 + i)); // 95A..
-    labels.push('96'); labels.push('97');
-    return labels;
-  }
-}
-
-/* ================================================================
-   FR4 DETECTION
-   Searches for the last WG (VH) or FG/WG (VK/VL) in the CDR3+FR4 tail.
-   Returns index in tail where FR4 starts, or -1.
-================================================================ */
-function findFR4(tail, chainType) {
-  let found = -1;
-  // Search from position 3 onward (min CDR3 = 3 aa)
-  for (let i = 3; i < tail.length - 1; i++) {
-    if (chainType === 'VH') {
-      if (tail[i] === 'W' && tail[i+1] === 'G') found = i;
-    } else {
-      if ((tail[i] === 'F' || tail[i] === 'W') && tail[i+1] === 'G') found = i;
-    }
-  }
-  return found;
-}
-
-/* ================================================================
-   REGION CLASSIFIER
-   Given a Kabat position label (string like "31","100A"),
-   returns 'CDR1'|'CDR2'|'CDR3'|'FR1'|'FR2'|'FR3'|'FR4'
-================================================================ */
-function getRegion(posLabel, chainType, scheme) {
-  const pos = parseInt(posLabel, 10);
-  const defs = CDR_SCHEMES[scheme][chainType] || CDR_SCHEMES[scheme]['VK'];
-  const [[c1l,c1h],[c2l,c2h],[c3l,c3h]] = defs;
-  if (pos >= c1l && pos <= c1h) return 'CDR1';
-  if (pos >= c2l && pos <= c2h) return 'CDR2';
-  if (pos >= c3l && pos <= c3h) return 'CDR3';
-  // FR boundaries
-  const refLen = chainType === 'VH' ? 94 : 88;
-  const fr4Start = chainType === 'VH' ? 103 : 98;
-  if (pos <= refLen) {
-    if (pos < c1l) return 'FR1';
-    if (pos > c1h && pos < c2l) return 'FR2';
-    if (pos > c2h && pos < c3l) return 'FR3';
-    return 'FR3'; // fallback
-  }
-  if (pos >= fr4Start) return 'FR4';
-  return 'CDR3'; // between reference end and FR4
-}
-
-/* ================================================================
-   MAIN ANNOTATION FUNCTION
-   Returns array of { aa, pos (string label), region }
+   ANNOTATION — delegates to immunum
+   Returns { residues, chainType, confidence, scheme }
+   residues: [{ aa, pos, region }]
 ================================================================ */
 function annotate(seq, chainHint, scheme) {
-  // 1. Select candidate references
-  let candidates;
-  if (chainHint === 'auto') {
-    candidates = REFS;
-  } else {
-    candidates = REFS.filter(r => r.chain === chainHint);
-    if (candidates.length === 0) candidates = REFS; // fallback
-  }
+  // Map UI chain hint to immunum chain codes
+  let chains;
+  if      (chainHint === 'VH')   chains = ['H'];
+  else if (chainHint === 'VK')   chains = ['K'];
+  else if (chainHint === 'VL')   chains = ['L'];
+  else                           chains = ['H', 'K', 'L']; // auto
 
-  // 2. Find best-matching reference via SW
-  let best = null, bestRef = null;
-  for (const ref of candidates) {
-    const aln = swAlign(seq, ref.seq);
-    if (!aln) continue;
-    if (!best || aln.score > best.score) { best = aln; bestRef = ref; }
-  }
-  if (!best || !bestRef) return null;
+  const schemeStr = scheme.toLowerCase(); // 'kabat' or 'imgt'
 
-  const chainType = bestRef.chain;
+  const annotator = new ImmunumAnnotator(chains, schemeStr);
+  try {
+    const numResult  = annotator.number(seq);
+    const segResult  = annotator.segment(seq);
 
-  // 3. Build Kabat position map for the aligned (FR1-FR3) region
-  const { qToKab, lastQi } = buildPosMap(best);
+    if (numResult.error || !numResult.numbering) return null;
+    if (segResult.error) return null;
 
-  // 4. Detect CDR3 and FR4 in the tail
-  const tail = seq.slice(lastQi);
-  const fr4Idx = tail.length > 0 ? findFR4(tail, chainType) : -1;
+    const { chain, confidence, numbering, query_start } = numResult;
+    const { prefix='', fr1='', cdr1='', fr2='', cdr2='',
+            fr3='', cdr3='', fr4='', postfix='' } = segResult;
 
-  // CDR3 residues: tail[0..fr4Idx-1] (or all if fr4 not found)
-  const cdr3End = fr4Idx >= 0 ? fr4Idx : tail.length;
-  const cdr3Seq = tail.slice(0, cdr3End);
-  const fr4Seq  = fr4Idx >= 0 ? tail.slice(fr4Idx) : '';
-
-  const cdr3Pos = cdr3Labels(cdr3Seq.length, chainType);
-  const fr4StartNum = chainType === 'VH' ? 103 : 98;
-
-  // 5. Build full annotation array
-  const result = [];
-
-  // Residues before the alignment (N-terminal extension or signal peptide)
-  for (let i = 0; i < best.qStart; i++) {
-    result.push({ aa: seq[i], pos: null, region: 'unknown' });
-  }
-
-  // Aligned region (FR1-FR3)
-  // Walk through aligned strings to assign positions
-  let qi = best.qStart, ri = best.rStart;
-  for (let k = 0; k < best.alignedQ.length; k++) {
-    const qc = best.alignedQ[k], rc = best.alignedR[k];
-    if (qc === '-') { ri++; continue; } // deleted in query, skip
-    if (rc === '-') {
-      // Insertion in query relative to reference — use base Kabat number of preceding residue
-      // e.g. after Kabat 35 → '35x'; parseInt('35x') = 35, classifying correctly into region
-      const prevKab = qToKab[qi - 1];
-      const posLabel = prevKab != null ? String(prevKab) + 'x' : null;
-      const region = posLabel ? getRegion(posLabel, chainType, scheme) : 'unknown';
-      result.push({ aa: qc, pos: posLabel, region });
-      qi++;
-    } else {
-      const kabPos = ri + 1; // Kabat position (1-based)
-      const posLabel = String(kabPos);
-      result.push({ aa: qc, pos: posLabel, region: getRegion(posLabel, chainType, scheme) });
-      qi++; ri++;
+    // Build per-residue region array from segmentation
+    const regionArr = [];
+    for (const [region, s] of [
+      ['unknown', prefix],  ['FR1', fr1],   ['CDR1', cdr1],
+      ['FR2', fr2],         ['CDR2', cdr2], ['FR3', fr3],
+      ['CDR3', cdr3],       ['FR4', fr4],   ['unknown', postfix]
+    ]) {
+      for (const _aa of s) regionArr.push(region);
     }
-  }
 
-  // CDR3 — cdr3Pos is always exactly cdr3Seq.length entries; fallback uses chain-correct start
-  const cdr3StartNum = chainType === 'VH' ? 95 : 89;
-  for (let i = 0; i < cdr3Seq.length; i++) {
-    const posLabel = cdr3Pos[i] ?? String(cdr3StartNum + i);
-    result.push({ aa: cdr3Seq[i], pos: posLabel, region: 'CDR3' });
-  }
+    // Build per-residue position labels from the ordered numbering Map
+    const posLabels = new Array(seq.length).fill(null);
+    let idx = query_start;
+    for (const [pos] of numbering.entries()) {
+      if (idx < seq.length) posLabels[idx] = pos;
+      idx++;
+    }
 
-  // FR4
-  for (let i = 0; i < fr4Seq.length; i++) {
-    const posLabel = String(fr4StartNum + i);
-    result.push({ aa: fr4Seq[i], pos: posLabel, region: 'FR4' });
-  }
+    const residues = Array.from(seq, (aa, i) => ({
+      aa,
+      pos:    posLabels[i],
+      region: regionArr[i] || 'unknown'
+    }));
 
-  return { residues: result, chainType, refId: bestRef.id, alnScore: best.score, scheme };
+    const chainMap = { H: 'VH', K: 'VK', L: 'VL' };
+    return { residues, chainType: chainMap[chain] || chain, confidence, scheme };
+  } finally {
+    annotator.free();
+  }
 }
 
 /* ================================================================
@@ -874,13 +636,11 @@ function renderCDRTable(res) {
     queryPos++;
   }
 
-  const defs = CDR_SCHEMES[scheme][chainType] || CDR_SCHEMES[scheme]['VK'];
   let html = `<thead><tr>
     <th>CDR</th><th>Sequence</th><th>Length</th>
-    <th>Query position (1-based)</th><th>Kabat range (${scheme})</th>
+    <th>Query position (1-based)</th><th>Scheme</th>
   </tr></thead><tbody>`;
-  cdrs.forEach((cdr, i) => {
-    const kabRange = defs[i] ? `${defs[i][0]}–${defs[i][1]}` : '—';
+  cdrs.forEach(cdr => {
     const pos = cdr.start != null ? `${cdr.start}–${cdr.end}` : '—';
     const seq = cdr.seq || '—';
     html += `<tr>
@@ -888,7 +648,7 @@ function renderCDRTable(res) {
       <td><span class="cdr-seq ${cdr.cls}">${seq}</span></td>
       <td>${cdr.seq.length || 0}</td>
       <td><span class="pos-badge">${pos}</span></td>
-      <td><span class="pos-badge">${kabRange}</span></td>
+      <td><span class="pos-badge">${scheme}</span></td>
     </tr>`;
   });
   html += '</tbody>';
@@ -897,38 +657,47 @@ function renderCDRTable(res) {
 
 /* ================================================================
    RENDERING — Numbered Alignment View
-   Shows residues in rows of COLS with position numbers above
+   Each column width = max(3, length of position label).
+   All three rows (position / residue / region) use the same width
+   per column so they stay aligned even for insertion codes like 100A.
 ================================================================ */
 function renderNumbered(res) {
-  const { residues, scheme } = res;
+  const { residues } = res;
   const COLS = 30;
-  const labeled = residues.filter(r => r.pos !== null);
-  const all = residues; // includes unknowns
+
+  function regionAbbr(region) {
+    if (region === 'CDR1') return 'C1';
+    if (region === 'CDR2') return 'C2';
+    if (region === 'CDR3') return 'C3';
+    if (region.startsWith('FR')) return region; // FR1..FR4 (3 chars)
+    return '?';
+  }
 
   let html = '';
-  for (let start = 0; start < all.length; start += COLS) {
-    const chunk = all.slice(start, start + COLS);
+  for (let start = 0; start < residues.length; start += COLS) {
+    const chunk = residues.slice(start, start + COLS);
 
-    // Position row
+    // Per-column widths: fit position label, minimum 3
+    const widths = chunk.map(r => Math.max(3, (r.pos ?? '?').length));
+
+    // Position row (plain text)
     let posRow = '';
-    for (const r of chunk) {
-      const lbl = r.pos != null ? r.pos : '?';
-      posRow += lbl.padStart(3);
+    for (let i = 0; i < chunk.length; i++) {
+      posRow += (chunk[i].pos ?? '?').padStart(widths[i]);
     }
 
-    // Sequence row (with region coloring)
+    // Sequence row (colored spans)
     let seqRow = '';
-    for (const r of chunk) {
+    for (let i = 0; i < chunk.length; i++) {
+      const r   = chunk[i];
       const cls = regionClass(r.region);
-      seqRow += `<span class="nk ${cls}">${('  ' + r.aa).slice(-3)}</span>`;
+      seqRow += `<span class="nk ${cls}">${r.aa.padStart(widths[i])}</span>`;
     }
 
-    // Region row
+    // Region row (plain text)
     let regRow = '';
-    for (const r of chunk) {
-      const abbr = r.region === 'CDR1' ? ' C1' : r.region === 'CDR2' ? ' C2'
-                 : r.region === 'CDR3' ? ' C3' : r.region.startsWith('FR') ? (' ' + r.region).slice(-3) : '  ?';
-      regRow += abbr;
+    for (let i = 0; i < chunk.length; i++) {
+      regRow += regionAbbr(chunk[i].region).padStart(widths[i]);
     }
 
     html += `<div class="num-block">
@@ -944,16 +713,16 @@ function renderNumbered(res) {
    RENDERING — Info bar
 ================================================================ */
 function renderInfoBar(res) {
-  const { residues, chainType, refId, alnScore, scheme } = res;
+  const { residues, chainType, confidence, scheme } = res;
   const cdr1 = residues.filter(r => r.region === 'CDR1').map(r => r.aa).join('');
   const cdr2 = residues.filter(r => r.region === 'CDR2').map(r => r.aa).join('');
   const cdr3 = residues.filter(r => r.region === 'CDR3').map(r => r.aa).join('');
+  const confPct = confidence != null ? (confidence * 100).toFixed(1) + '%' : '—';
 
   document.getElementById('info-bar').innerHTML = `
     <span class="info-chip">Chain: <strong>${chainType}</strong></span>
-    <span class="info-chip">Best ref: <strong>${refId}</strong></span>
     <span class="info-chip">Scheme: <strong>${scheme}</strong></span>
-    <span class="info-chip">Aln score: <strong>${Math.round(alnScore)}</strong></span>
+    <span class="info-chip">Confidence: <strong>${confPct}</strong></span>
     <span class="info-chip cdr1">CDR1: <strong>${cdr1 || '—'}</strong> (${cdr1.length} aa)</span>
     <span class="info-chip cdr2">CDR2: <strong>${cdr2 || '—'}</strong> (${cdr2.length} aa)</span>
     <span class="info-chip cdr3">CDR3: <strong>${cdr3 || '—'}</strong> (${cdr3.length} aa)</span>
@@ -975,7 +744,6 @@ function copyFASTA() {
     if (seq) text += `>${chainType}_${name}_${scheme}\n${seq}\n`;
   }
   navigator.clipboard.writeText(text).catch(() => {
-    // Fallback for browsers that don't support the Clipboard API
     const ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); // eslint-disable-line -- deprecated but widely supported fallback
@@ -985,9 +753,9 @@ function copyFASTA() {
 
 function downloadTSV() {
   if (!_lastResult) return;
-  const { residues, chainType, scheme, refId } = _lastResult;
-  let tsv = `# Antibody CDR Annotator | Scheme: ${scheme} | Chain: ${chainType} | Reference: ${refId}\n`;
-  tsv += 'QueryPos\tAA\tKabatPos\tRegion\n';
+  const { residues, chainType, scheme } = _lastResult;
+  let tsv = `# Antibody CDR Annotator | Scheme: ${scheme} | Chain: ${chainType}\n`;
+  tsv += 'QueryPos\tAA\tPos\tRegion\n';
   residues.forEach((r, i) => {
     tsv += `${i+1}\t${r.aa}\t${r.pos ?? ''}\t${r.region}\n`;
   });
@@ -1019,6 +787,7 @@ function showTab(name, btn) {
 }
 
 function runAnnotation() {
+  if (!_immunumReady) { showError('Annotation engine is still loading. Please wait a moment.'); return; }
   clearError();
   const raw = document.getElementById('seq-input').value.trim();
   if (!raw) { showError('Please paste a sequence.'); return; }
@@ -1036,9 +805,15 @@ function runAnnotation() {
   const chainHint = document.querySelector('input[name=chain]:checked').value;
   const scheme = document.getElementById('scheme-select').value;
 
-  const res = annotate(seq, chainHint, scheme);
+  let res;
+  try {
+    res = annotate(seq, chainHint, scheme);
+  } catch (e) {
+    showError('Annotation failed: ' + e.message);
+    return;
+  }
   if (!res) {
-    showError('Alignment failed — no suitable reference matched the query. Check the sequence is a valid antibody variable domain.');
+    showError('Alignment failed — the sequence could not be numbered. Check it is a valid antibody variable domain.');
     return;
   }
 
@@ -1048,12 +823,10 @@ function runAnnotation() {
   const warnArea = document.getElementById('warning-area');
   const warns = [];
   const fr4Count = res.residues.filter(r => r.region === 'FR4').length;
-  if (fr4Count === 0) warns.push('FR4 (J-gene) motif not found — the sequence may be truncated before FR4, or CDR3 numbering may be approximate.');
+  if (fr4Count === 0) warns.push('FR4 (J-gene) region not found — the sequence may be truncated before FR4.');
   if (res.residues.filter(r => r.region === 'CDR3').length === 0) warns.push('No CDR3 residues identified. The sequence may end before the CDR3.');
-  if (chainHint === 'auto') {
-    const detected = res.chainType;
-    warns.push(`Chain auto-detected as <strong>${detected}</strong> (best match: ${res.refId}).`);
-  }
+  if (res.confidence != null && res.confidence < 0.7) warns.push(`Low alignment confidence (${(res.confidence*100).toFixed(1)}%) — results may be inaccurate for this sequence.`);
+  if (chainHint === 'auto') warns.push(`Chain auto-detected as <strong>${res.chainType}</strong>.`);
   warnArea.innerHTML = warns.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('');
 
   renderInfoBar(res);
