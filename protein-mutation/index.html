@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protein Mutation | BioTools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:   #2563eb;
+      --blue-d: #1d4ed8;
+      --blue-l: #eff6ff;
+      --green:  #16a34a;
+      --red:    #dc2626;
+      --slate:  #64748b;
+      --bg:     #f0f4f8;
+      --card:   #ffffff;
+      --border: #e2e8f0;
+      --text:   #1e293b;
+      --mut-bg: #fef3c7;
+      --mut-fg: #92400e;
+      --mut-bd: #fbbf24;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%);
+      color: #fff;
+      padding: 32px 24px 28px;
+    }
+    .header-inner { max-width: 1000px; margin: 0 auto; }
+    .breadcrumb { font-size: 0.82rem; opacity: 0.75; margin-bottom: 8px; }
+    .breadcrumb a { color: inherit; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    header h1 { font-size: 1.9rem; font-weight: 700; }
+    header p  { margin-top: 6px; font-size: 0.95rem; opacity: 0.82; }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    main {
+      max-width: 1000px;
+      margin: 36px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+    }
+
+    /* ── Input ───────────────────────────────────────────── */
+    label.field-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate);
+      margin-bottom: 6px;
+    }
+
+    #seq-input {
+      width: 100%;
+      height: 160px;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: vertical;
+      color: var(--text);
+      background: #f8fafc;
+      transition: border-color 0.2s;
+    }
+    #seq-input:focus { outline: none; border-color: var(--blue); }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+
+    #run-btn {
+      padding: 10px 28px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #run-btn:hover { background: var(--blue-d); }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    /* ── Mode Tabs ───────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 8px 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--slate);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Text-mode input ─────────────────────────────────── */
+    .text-mode-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .text-mode-row .field-wrap { flex: 1; min-width: 220px; }
+    #mutation-text {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: #f8fafc;
+      transition: border-color 0.2s;
+    }
+    #mutation-text:focus { outline: none; border-color: var(--blue); }
+    #apply-text-btn {
+      padding: 9px 22px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    #apply-text-btn:hover { background: var(--blue-d); }
+
+    .hint {
+      font-size: 0.78rem;
+      color: var(--slate);
+      margin-top: 6px;
+    }
+
+    /* ── Sequence display ────────────────────────────────── */
+    .seq-block { margin-bottom: 24px; }
+    .seq-block:last-child { margin-bottom: 0; }
+    .seq-name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--slate);
+      margin-bottom: 8px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .seq-residues {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      line-height: 2.4;
+      word-break: break-all;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    /* ── Residue cells ───────────────────────────────────── */
+    .res {
+      display: inline-block;
+      width: 18px;
+      text-align: center;
+      border-radius: 3px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.12s, filter 0.12s;
+      user-select: none;
+    }
+    .res:hover { filter: brightness(0.82); }
+    .res.normal { background: #e2e8f0; color: var(--text); }
+    .res.mutated { background: var(--mut-bg); color: var(--mut-fg); font-weight: 700; border: 1px solid var(--mut-bd); }
+
+    /* ── Residue number ruler ────────────────────────────── */
+    .ruler {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.7rem;
+      color: #94a3b8;
+      margin-bottom: 2px;
+      word-break: break-all;
+      padding: 0 16px;
+      line-height: 1.4;
+    }
+
+    /* ── Popup ───────────────────────────────────────────── */
+    #aa-popup {
+      position: fixed;
+      z-index: 1000;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.15);
+      padding: 14px 16px;
+      min-width: 220px;
+      display: none;
+    }
+    #aa-popup.visible { display: block; }
+    #aa-popup-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .aa-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+    .aa-btn {
+      padding: 5px 2px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f8fafc;
+      color: var(--text);
+      text-align: center;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .aa-btn:hover { background: var(--blue-l); border-color: var(--blue); color: var(--blue); }
+    .aa-btn.same { background: #e2e8f0; color: #94a3b8; }
+    #popup-close {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 5px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      text-align: center;
+    }
+    #popup-close:hover { background: #e2e8f0; }
+
+    /* ── Error ───────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--red);
+      font-size: 0.9rem;
+    }
+
+    /* ── Results ─────────────────────────────────────────── */
+    #results-section { display: none; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .results-header .card-title { margin-bottom: 0; }
+    .action-btns { display: flex; gap: 8px; }
+    .action-btn {
+      padding: 7px 14px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .action-btn.copy    { background: #f1f5f9; color: var(--text); }
+    .action-btn.copy:hover    { background: #e2e8f0; }
+    .action-btn.download { background: var(--blue); color: #fff; }
+    .action-btn.download:hover { background: var(--blue-d); }
+    .action-btn.reset   { background: #fef2f2; color: var(--red); }
+    .action-btn.reset:hover   { background: #fee2e2; }
+
+    /* ── Mutation summary chips ──────────────────────────── */
+    .mut-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .mut-chip {
+      background: var(--mut-bg);
+      border: 1px solid var(--mut-bd);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--mut-fg);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .mut-chip-none {
+      color: var(--slate);
+      font-size: 0.84rem;
+      font-style: italic;
+    }
+
+    /* ── FASTA output ────────────────────────────────────── */
+    #fasta-output {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--text);
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 28px 16px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Protein Mutation</div>
+    <h1>🧫 Protein Mutation</h1>
+    <p>Number residues in protein sequences and introduce point mutations interactively or via text notation (e.g. A20N,F54Y).</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Input card ──────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">Input Sequences</div>
+    <label class="field-label" for="seq-input">FASTA sequences (one or more)</label>
+    <textarea id="seq-input" spellcheck="false" placeholder=">SequenceName&#10;MKTAYIAKQRQISFVK..."></textarea>
+    <div class="btn-row">
+      <button id="run-btn">Number &amp; Display Sequences</button>
+      <button class="btn-secondary" id="example-btn">Load Example</button>
+    </div>
+  </div>
+
+  <!-- ── Error ───────────────────────────────────────────── -->
+  <div id="error-box"></div>
+
+  <!-- ── Mutation editor card ────────────────────────────── -->
+  <div class="card" id="editor-section" style="display:none">
+    <div class="card-title">Mutation Editor</div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="interactive">Interactive</button>
+      <button class="tab-btn" data-tab="text">Text Notation</button>
+    </div>
+
+    <!-- Interactive tab -->
+    <div class="tab-panel active" id="tab-interactive">
+      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:18px;">
+        Click any residue to change it. Mutated residues are highlighted in amber.
+      </p>
+      <div id="seq-display"></div>
+    </div>
+
+    <!-- Text tab -->
+    <div class="tab-panel" id="tab-text">
+      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:14px;">
+        Enter mutations separated by commas. Each mutation uses the format <strong>OrigAA&thinsp;Position&thinsp;NewAA</strong> (e.g. <code>A20N,F54Y</code>). The original amino acid is optional but will be validated when provided.
+      </p>
+      <div class="text-mode-row">
+        <div class="field-wrap">
+          <label class="field-label" for="seq-select">Apply to sequence</label>
+          <select id="seq-select" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:7px;font-size:0.88rem;background:#f8fafc;color:var(--text);outline:none;transition:border-color 0.2s;">
+          </select>
+        </div>
+        <div class="field-wrap">
+          <label class="field-label" for="mutation-text">Mutations</label>
+          <input id="mutation-text" type="text" placeholder="A20N,F54Y" spellcheck="false" />
+          <div class="hint">Format: [OrigAA]Position[NewAA] — e.g. A20N or just 20N or A20N,F54Y</div>
+        </div>
+        <button id="apply-text-btn">Apply</button>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:24px;">
+      <button class="action-btn reset" id="reset-btn">Reset All Mutations</button>
+    </div>
+  </div>
+
+  <!-- ── Results card ────────────────────────────────────── -->
+  <div class="card" id="results-section">
+    <div class="results-header">
+      <div class="card-title">Mutated Sequences</div>
+      <div class="action-btns">
+        <button class="action-btn copy" id="copy-btn">Copy FASTA</button>
+        <button class="action-btn download" id="download-btn">Download FASTA</button>
+      </div>
+    </div>
+
+    <div class="mut-summary" id="mut-summary"></div>
+
+    <div id="fasta-output"></div>
+  </div>
+
+</main>
+
+<footer>BioTools — runs entirely in your browser. No data is sent to any server.</footer>
+
+<!-- ── Residue popup ──────────────────────────────────────── -->
+<div id="aa-popup">
+  <div id="aa-popup-title">Mutate residue <span id="popup-res-label"></span></div>
+  <div class="aa-grid" id="aa-grid"></div>
+  <button id="popup-close">Cancel</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Constants ──────────────────────────────────────────── */
+  const AA_ONE = [
+    ['A','Ala'],['C','Cys'],['D','Asp'],['E','Glu'],['F','Phe'],
+    ['G','Gly'],['H','His'],['I','Ile'],['K','Lys'],['L','Leu'],
+    ['M','Met'],['N','Asn'],['P','Pro'],['Q','Gln'],['R','Arg'],
+    ['S','Ser'],['T','Thr'],['V','Val'],['W','Trp'],['Y','Tyr']
+  ];
+  const VALID_AA = new Set(AA_ONE.map(([c]) => c));
+
+  const EXAMPLE_FASTA = `>SpCas9_fragment
+MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRICYLQEIFSNEMAKVDDSFFHRLEESFLVEEDKKHERHPIFGNIVDEVAYHEKYPTIYHLRKKLVDSTDKADLRLIYLALAHMIKFRGHFLIEGDLNPDNSDVDKLFIQLVNTLLKQKDTGAFYFLKELGLNLERIIESQLVEEPKKHRAVDLGTLVEKLGIPYQISQNLLDQTLKKLNDLHPQGLAFEQKFNHVFNQKLSSFQPERKPFKDLPQPWFFFQQVQKLKQFKKPKK`;
+
+  /* ── State ───────────────────────────────────────────────── */
+  // sequences[i] = { name: string, original: string[], current: string[] }
+  let sequences = [];
+  let popupTarget = null; // { seqIdx, resIdx }
+
+  /* ── DOM refs ────────────────────────────────────────────── */
+  const seqInput      = document.getElementById('seq-input');
+  const runBtn        = document.getElementById('run-btn');
+  const exampleBtn    = document.getElementById('example-btn');
+  const errorBox      = document.getElementById('error-box');
+  const editorSection = document.getElementById('editor-section');
+  const seqDisplay    = document.getElementById('seq-display');
+  const resultsSection= document.getElementById('results-section');
+  const fastaOutput   = document.getElementById('fasta-output');
+  const mutSummary    = document.getElementById('mut-summary');
+  const copyBtn       = document.getElementById('copy-btn');
+  const downloadBtn   = document.getElementById('download-btn');
+  const resetBtn      = document.getElementById('reset-btn');
+  const aaPopup       = document.getElementById('aa-popup');
+  const aaGrid        = document.getElementById('aa-grid');
+  const popupResLabel = document.getElementById('popup-res-label');
+  const popupClose    = document.getElementById('popup-close');
+  const tabBtns       = document.querySelectorAll('.tab-btn');
+  const tabPanels     = document.querySelectorAll('.tab-panel');
+  const seqSelect     = document.getElementById('seq-select');
+  const mutationText  = document.getElementById('mutation-text');
+  const applyTextBtn  = document.getElementById('apply-text-btn');
+
+  /* ── FASTA parsing ───────────────────────────────────────── */
+  function parseFasta(raw) {
+    const lines = raw.trim().split(/\r?\n/);
+    const result = [];
+    let cur = null;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('>')) {
+        if (cur) result.push(cur);
+        cur = { name: trimmed.slice(1).trim() || 'Sequence', seq: '' };
+      } else {
+        if (!cur) cur = { name: 'Sequence', seq: '' };
+        cur.seq += trimmed.replace(/\s+/g, '').toUpperCase();
+      }
+    }
+    if (cur) result.push(cur);
+    return result;
+  }
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = 'block';
+  }
+  function clearError() {
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
+
+  /* ── Load sequences ──────────────────────────────────────── */
+  runBtn.addEventListener('click', () => {
+    clearError();
+    const raw = seqInput.value.trim();
+    if (!raw) { showError('Please enter at least one sequence.'); return; }
+
+    const parsed = parseFasta(raw);
+    if (!parsed.length) { showError('Could not parse any sequences from the input.'); return; }
+
+    const invalid = [];
+    for (const { name, seq } of parsed) {
+      for (let i = 0; i < seq.length; i++) {
+        if (!VALID_AA.has(seq[i])) invalid.push(`Sequence "${name}", position ${i + 1}: unknown amino acid "${seq[i]}"`);
+      }
+    }
+    if (invalid.length) {
+      showError('Invalid characters found:\n' + invalid.slice(0, 5).join('\n') + (invalid.length > 5 ? `\n…and ${invalid.length - 5} more` : ''));
+      return;
+    }
+
+    sequences = parsed.map(({ name, seq }) => ({
+      name,
+      original: seq.split(''),
+      current:  seq.split('')
+    }));
+
+    buildSeqSelect();
+    renderDisplay();
+    renderResults();
+
+    editorSection.style.display = 'block';
+    resultsSection.style.display = 'block';
+    editorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  exampleBtn.addEventListener('click', () => {
+    seqInput.value = EXAMPLE_FASTA;
+  });
+
+  /* ── Build seq select ────────────────────────────────────── */
+  function buildSeqSelect() {
+    seqSelect.innerHTML = '';
+    sequences.forEach(({ name }, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = name;
+      seqSelect.appendChild(opt);
+    });
+  }
+
+  /* ── Render interactive display ──────────────────────────── */
+  function renderDisplay() {
+    seqDisplay.innerHTML = '';
+    sequences.forEach((seq, si) => {
+      const block = document.createElement('div');
+      block.className = 'seq-block';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'seq-name';
+      nameEl.textContent = '>' + seq.name;
+      block.appendChild(nameEl);
+
+      // Build residues in chunks with ruler ticks
+      const CHUNK = 10;
+      const total = seq.current.length;
+      for (let start = 0; start < total; start += CHUNK) {
+        const end = Math.min(start + CHUNK, total);
+
+        // Ruler row
+        const ruler = document.createElement('div');
+        ruler.className = 'ruler';
+        let rulerText = '';
+        for (let i = start; i < end; i++) {
+          const num = i + 1;
+          // Show number at every 10th (1-based) position in the chunk
+          if ((i + 1) % 10 === 0 || i === 0) {
+            const label = String(num);
+            rulerText += label.padStart(1, ' ') + ' '.repeat(Math.max(0, CHUNK - label.length));
+          } else {
+            rulerText += ' ';
+          }
+        }
+        ruler.textContent = rulerText;
+
+        // Residue row
+        const resRow = document.createElement('div');
+        resRow.className = 'seq-residues';
+        resRow.style.marginBottom = '6px';
+
+        for (let i = start; i < end; i++) {
+          const span = document.createElement('span');
+          span.className = 'res ' + (seq.current[i] !== seq.original[i] ? 'mutated' : 'normal');
+          span.textContent = seq.current[i];
+          span.title = `${seq.original[i]}${i + 1} (position ${i + 1})`;
+          span.dataset.si = si;
+          span.dataset.ri = i;
+          span.addEventListener('click', onResidueClick);
+          resRow.appendChild(span);
+        }
+
+        block.appendChild(ruler);
+        block.appendChild(resRow);
+      }
+
+      seqDisplay.appendChild(block);
+    });
+  }
+
+  /* ── Popup ───────────────────────────────────────────────── */
+  function onResidueClick(e) {
+    e.stopPropagation();
+    const si = +e.currentTarget.dataset.si;
+    const ri = +e.currentTarget.dataset.ri;
+    popupTarget = { si, ri };
+
+    const origAA = sequences[si].original[ri];
+    const curAA  = sequences[si].current[ri];
+    popupResLabel.textContent = `${origAA}${ri + 1} (in ${sequences[si].name})`;
+
+    // Build AA grid
+    aaGrid.innerHTML = '';
+    AA_ONE.forEach(([code, name]) => {
+      const btn = document.createElement('button');
+      btn.className = 'aa-btn' + (code === curAA ? ' same' : '');
+      btn.textContent = code;
+      btn.title = `${code} — ${name}`;
+      btn.addEventListener('click', () => applyMutation(si, ri, code));
+      aaGrid.appendChild(btn);
+    });
+
+    // Position popup near the clicked residue
+    const rect = e.currentTarget.getBoundingClientRect();
+    const popupW = 230;
+    const popupH = 220;
+    let left = rect.left + window.scrollX;
+    let top  = rect.bottom + window.scrollY + 6;
+
+    if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+    if (top + popupH > window.scrollY + window.innerHeight - 8) top = rect.top + window.scrollY - popupH - 6;
+
+    aaPopup.style.left = left + 'px';
+    aaPopup.style.top  = top + 'px';
+    aaPopup.classList.add('visible');
+  }
+
+  function closePopup() {
+    aaPopup.classList.remove('visible');
+    popupTarget = null;
+  }
+
+  popupClose.addEventListener('click', closePopup);
+  document.addEventListener('click', (e) => {
+    if (!aaPopup.contains(e.target)) closePopup();
+  });
+
+  function applyMutation(si, ri, newAA) {
+    sequences[si].current[ri] = newAA;
+    closePopup();
+    renderDisplay();
+    renderResults();
+  }
+
+  /* ── Text-mode mutations ─────────────────────────────────── */
+  applyTextBtn.addEventListener('click', () => {
+    clearError();
+    const si = +seqSelect.value;
+    const raw = mutationText.value.trim();
+    if (!raw) { showError('Please enter at least one mutation.'); return; }
+
+    const tokens = raw.split(',').map(s => s.trim()).filter(Boolean);
+    // Pattern: optional origAA, digits, newAA  e.g. A20N or 20N or A20 (latter not useful)
+    const pat = /^([A-Za-z]?)(\d+)([A-Za-z])$/;
+    const mutations = [];
+    for (const tok of tokens) {
+      const m = pat.exec(tok);
+      if (!m) { showError(`Cannot parse mutation "${tok}". Expected format: [OrigAA]Position[NewAA], e.g. A20N`); return; }
+      const origChar = m[1].toUpperCase();
+      const pos      = parseInt(m[2], 10);
+      const newChar  = m[3].toUpperCase();
+
+      if (origChar && !VALID_AA.has(origChar)) { showError(`Unknown amino acid "${origChar}" in mutation "${tok}".`); return; }
+      if (!VALID_AA.has(newChar)) { showError(`Unknown amino acid "${newChar}" in mutation "${tok}".`); return; }
+      if (pos < 1 || pos > sequences[si].original.length) {
+        showError(`Position ${pos} is out of range for sequence "${sequences[si].name}" (length ${sequences[si].original.length}).`);
+        return;
+      }
+
+      const ri = pos - 1;
+      if (origChar && sequences[si].original[ri] !== origChar) {
+        showError(`Mutation "${tok}": expected ${origChar} at position ${pos}, but found ${sequences[si].original[ri]}.`);
+        return;
+      }
+
+      mutations.push({ ri, newChar });
+    }
+
+    mutations.forEach(({ ri, newChar }) => { sequences[si].current[ri] = newChar; });
+    mutationText.value = '';
+    renderDisplay();
+    renderResults();
+  });
+
+  /* ── Reset ───────────────────────────────────────────────── */
+  resetBtn.addEventListener('click', () => {
+    sequences.forEach(seq => { seq.current = [...seq.original]; });
+    renderDisplay();
+    renderResults();
+  });
+
+  /* ── Tabs ────────────────────────────────────────────────── */
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  /* ── Results ─────────────────────────────────────────────── */
+  function buildFasta() {
+    return sequences.map(seq => {
+      const seqStr = seq.current.join('');
+      const lines = [];
+      for (let i = 0; i < seqStr.length; i += 60) lines.push(seqStr.slice(i, i + 60));
+      return '>' + seq.name + '\n' + lines.join('\n');
+    }).join('\n\n');
+  }
+
+  function renderResults() {
+    // Mutation summary
+    const chips = [];
+    sequences.forEach(seq => {
+      seq.original.forEach((origAA, i) => {
+        if (seq.current[i] !== origAA) {
+          chips.push(`${origAA}${i + 1}${seq.current[i]}`);
+        }
+      });
+    });
+
+    mutSummary.innerHTML = '';
+    if (chips.length === 0) {
+      const none = document.createElement('span');
+      none.className = 'mut-chip-none';
+      none.textContent = 'No mutations applied yet.';
+      mutSummary.appendChild(none);
+    } else {
+      chips.forEach(label => {
+        const chip = document.createElement('span');
+        chip.className = 'mut-chip';
+        chip.textContent = label;
+        mutSummary.appendChild(chip);
+      });
+    }
+
+    fastaOutput.textContent = buildFasta();
+  }
+
+  /* ── Copy / Download ─────────────────────────────────────── */
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(buildFasta()).then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const blob = new Blob([buildFasta()], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'mutated_sequences.fasta';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+})();
+</script>
+</body>
+</html>
