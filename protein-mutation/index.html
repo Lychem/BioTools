@@ -149,11 +149,10 @@
     /* ── Text-mode input ─────────────────────────────────── */
     .text-mode-row {
       display: flex;
+      flex-direction: column;
       gap: 10px;
-      align-items: flex-end;
-      flex-wrap: wrap;
     }
-    .text-mode-row .field-wrap { flex: 1; min-width: 220px; }
+    .text-mode-row .field-wrap { width: 100%; }
     #mutation-text {
       width: 100%;
       padding: 9px 12px;
@@ -176,6 +175,7 @@
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
+      align-self: flex-start;
       transition: background 0.2s;
     }
     #apply-text-btn:hover { background: var(--blue-d); }
@@ -244,7 +244,7 @@
 
     /* ── Popup ───────────────────────────────────────────── */
     #aa-popup {
-      position: fixed;
+      position: absolute;
       z-index: 1000;
       background: #fff;
       border: 1px solid var(--border);
@@ -615,7 +615,7 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
       block.appendChild(nameEl);
 
       // Build residues in chunks with ruler ticks
-      const CHUNK = 10;
+      const CHUNK = 50;
       const total = seq.current.length;
       for (let start = 0; start < total; start += CHUNK) {
         const end = Math.min(start + CHUNK, total);
@@ -677,14 +677,14 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
       aaGrid.appendChild(btn);
     });
 
-    // Position popup near the clicked residue
+    // Position popup near the clicked residue (document-relative for position:absolute)
     const rect = e.currentTarget.getBoundingClientRect();
     const popupW = 230;
     const popupH = 220;
     let left = rect.left + window.scrollX;
     let top  = rect.bottom + window.scrollY + 6;
 
-    if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+    if (left + popupW > window.scrollX + window.innerWidth - 8) left = window.scrollX + window.innerWidth - popupW - 8;
     if (top + popupH > window.scrollY + window.innerHeight - 8) top = rect.top + window.scrollY - popupH - 6;
 
     aaPopup.style.left = left + 'px';
