@@ -1,0 +1,589 @@
+
+/* ================================================================
+   FASTA Formatting Utilities
+================================================================ */
+
+function toFasta(chains, multiline) {
+  return chains.map(({ header, seq }) => {
+    const h = `>${header}`;
+    if (!multiline) return `${h}\n${seq}`;
+    const wrapped = (seq.match(/.{1,60}/g) || [seq]).join('\n');
+    return `${h}\n${wrapped}`;
+  }).join('\n');
+}
+
+/* ================================================================
+   Three-letter → One-letter amino acid code mapping
+================================================================ */
+
+const AA3TO1 = {
+  ALA:'A', ARG:'R', ASN:'N', ASP:'D', CYS:'C',
+  GLN:'Q', GLU:'E', GLY:'G', HIS:'H', ILE:'I',
+  LEU:'L', LYS:'K', MET:'M', PHE:'F', PRO:'P',
+  SER:'S', THR:'T', TRP:'W', TYR:'Y', VAL:'V',
+  // Non-standard / modified residues → best single-letter approximation
+  MSE:'M', HYP:'P', CSE:'C', SEC:'U', PYL:'O',
+  ASX:'B', GLX:'Z', XAA:'X', UNK:'X',
+};
+
+function aa3to1(code) {
+  return AA3TO1[code.toUpperCase()] || 'X';
+}
+
+/* ================================================================
+   PDB Parser
+   Reads SEQRES records → chains
+================================================================ */
+
+function parsePDB(text, mode) {
+  const lines = text.split(/\r?\n/);
+  // Map: chainId → array of 3-letter codes
+  const seqresMap = new Map();
+
+  // Also grab COMPND / HEADER for description
+  let title = '';
+  for (const line of lines) {
+    if (line.startsWith('HEADER')) {
+      title = line.slice(10, 50).trim();
+      break;
+    }
+  }
+
+  if (mode !== 'structure') {
+    // Author-annotated mode: read SEQRES records
+    for (const line of lines) {
+      if (!line.startsWith('SEQRES')) continue;
+      const chainId = (line[11]?.trim()) || '_';
+      const residues = line.slice(19).trim().split(/\s+/).filter(Boolean);
+      if (!seqresMap.has(chainId)) seqresMap.set(chainId, []);
+      seqresMap.get(chainId).push(...residues);
+    }
+  }
+
+  if (seqresMap.size === 0) {
+    // Structure-derived: derive sequence from ATOM records (CA atoms only, unique resSeq)
+    const atomMap = new Map(); // chainId → Map<resSeq, resName>
+    for (const line of lines) {
+      if (!line.startsWith('ATOM  ') && !line.startsWith('ATOM ')) continue;
+      const atomName  = line.slice(12, 16).trim();
+      if (atomName !== 'CA') continue;
+      const resName   = line.slice(17, 20).trim();
+      const chainId   = line[21]?.trim() || '_';
+      const resSeqRaw = line.slice(22, 26).trim();
+      const insertionCode = line[26]?.trim() || '';
+      const resKey    = resSeqRaw + insertionCode;
+      if (!atomMap.has(chainId)) atomMap.set(chainId, new Map());
+      if (!atomMap.get(chainId).has(resKey)) {
+        atomMap.get(chainId).set(resKey, resName);
+      }
+    }
+    for (const [chainId, resMap] of atomMap) {
+      seqresMap.set(chainId, [...resMap.values()]);
+    }
+  }
+
+  if (seqresMap.size === 0) throw new Error('No sequence data found in PDB file (missing SEQRES and ATOM records).');
+
+  const chains = [];
+  for (const [chainId, residues] of seqresMap) {
+    const seq = residues.map(aa3to1).join('');
+    const header = title
+      ? `Chain_${chainId}|${title}`
+      : `Chain_${chainId}`;
+    chains.push({ header, seq, chainId });
+  }
+  return chains;
+}
+
+/* ================================================================
+   mmCIF Parser
+   Strategy:
+     1. Try _entity_poly.pdbx_seq_one_letter_code_can (canonical 1-letter)
+     2. Try _entity_poly.pdbx_seq_one_letter_code
+     3. Fall back to _entity_poly_seq loop (3-letter codes)
+   Then map entity_id → chain IDs via _struct_asym
+================================================================ */
+
+/** Parse a simple mmCIF key→value block (non-loop_ pairs). */
+function parseCifKeyValues(text) {
+  const kv = {};
+  const re = /^_(\S+)\s+(.+)/gm;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    kv[m[1].toLowerCase()] = m[2].trim().replace(/^['"]|['"]$/g, '');
+  }
+  return kv;
+}
+
+/**
+ * Parse all loop_ blocks from CIF text.
+ * Returns array of { columns: string[], rows: string[][] }
+ */
+function parseCifLoops(text) {
+  const loops = [];
+  // Split on loop_ boundaries
+  const loopRe = /loop_\s*((?:_\S+\s+)+)([\s\S]*?)(?=loop_|^data_|$)/gm;
+  let match;
+  while ((match = loopRe.exec(text)) !== null) {
+    const columnBlock = match[1];
+    const dataBlock   = match[2];
+
+    const columns = [];
+    const colRe = /_(\S+)/g;
+    let cm;
+    while ((cm = colRe.exec(columnBlock)) !== null) {
+      columns.push(cm[1].toLowerCase());
+    }
+
+    // Tokenise data block (handle quoted strings and semicolon-blocks)
+    const tokens = tokeniseCif(dataBlock);
+    const nCols = columns.length;
+    if (nCols === 0) continue;
+    const rows = [];
+    for (let i = 0; i + nCols <= tokens.length; i += nCols) {
+      rows.push(tokens.slice(i, i + nCols));
+    }
+    loops.push({ columns, rows });
+  }
+  return loops;
+}
+
+/** Tokenise a CIF data section into an array of string values. */
+function tokeniseCif(text) {
+  const tokens = [];
+  // Semicolon-delimited multi-line values
+  const semi = /\n;([\s\S]*?)\n;/g;
+  let semiMatch;
+  const ranges = [];
+  while ((semiMatch = semi.exec(text)) !== null) {
+    tokens.push(semiMatch[1].trim());
+    ranges.push([semiMatch.index, semiMatch.index + semiMatch[0].length]);
+  }
+
+  // Replace semicolon blocks with placeholders to simplify inline parsing
+  let cleaned = text;
+  // Process inline (non-semicolon) tokens from lines
+  const lineRe = /^(?!;)(.+)$/gm;
+  let lm;
+  while ((lm = lineRe.exec(text)) !== null) {
+    const line = lm[1].trimStart();
+    if (line.startsWith('#') || line.startsWith('_') || line.startsWith('loop_') || line.startsWith('data_')) continue;
+    // Tokenise the line
+    const toks = tokeniseCifLine(line);
+    tokens.push(...toks);
+  }
+  return tokens;
+}
+
+function tokeniseCifLine(line) {
+  const tokens = [];
+  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
+  let m;
+  while ((m = re.exec(line)) !== null) {
+    tokens.push(m[1] ?? m[2] ?? m[3]);
+  }
+  return tokens;
+}
+
+/**
+ * More robust CIF parser: extracts entity_poly data and struct_asym data.
+ */
+function parseCIF(text, mode) {
+  // Structure-derived mode: extract directly from _atom_site coordinates
+  if (mode === 'structure') {
+    const atomChains = parseCifAtomSite(text);
+    if (atomChains.length > 0) return atomChains;
+    throw new Error('No ATOM coordinate data found in CIF file (_atom_site records missing or empty).');
+  }
+
+  // Author-annotated mode: use _entity_poly / _entity_poly_seq records
+  // ── 1. Entity→sequence map ────────────────────────────────────
+  const entitySeq = new Map(); // entity_id → one-letter seq
+
+  // Try loop_ _entity_poly …
+  const entityPolyLoop = findLoop(text, '_entity_poly.');
+  if (entityPolyLoop) {
+    const { columns, rows } = entityPolyLoop;
+    const idIdx  = findCol(columns, 'entity_poly.entity_id');
+    const seqIdx = findCol(columns, 'entity_poly.pdbx_seq_one_letter_code_can')
+                ?? findCol(columns, 'entity_poly.pdbx_seq_one_letter_code');
+    if (idIdx !== null && seqIdx !== null) {
+      for (const row of rows) {
+        const id  = row[idIdx];
+        const seq = (row[seqIdx] || '').replace(/[^A-Za-z]/g, '');
+        if (seq) entitySeq.set(id, seq.toUpperCase());
+      }
+    }
+  }
+
+  // Also try key-value _entity_poly.pdbx_seq_one_letter_code_can (single entity files)
+  if (entitySeq.size === 0) {
+    const kvSeqCan = extractCifValue(text, '_entity_poly.pdbx_seq_one_letter_code_can');
+    const kvSeq    = extractCifValue(text, '_entity_poly.pdbx_seq_one_letter_code');
+    const raw = kvSeqCan || kvSeq;
+    if (raw) {
+      const seq = raw.replace(/[^A-Za-z]/g, '').toUpperCase();
+      entitySeq.set('1', seq);
+    }
+  }
+
+  // Fallback: _entity_poly_seq loop (3-letter codes)
+  if (entitySeq.size === 0) {
+    const polySeqLoop = findLoop(text, '_entity_poly_seq.');
+    if (polySeqLoop) {
+      const { columns, rows } = polySeqLoop;
+      const entityIdx = findCol(columns, 'entity_poly_seq.entity_id');
+      const monIdx    = findCol(columns, 'entity_poly_seq.mon_id');
+      if (entityIdx !== null && monIdx !== null) {
+        for (const row of rows) {
+          const eid = row[entityIdx];
+          const mon = row[monIdx];
+          if (!entitySeq.has(eid)) entitySeq.set(eid, '');
+          entitySeq.set(eid, entitySeq.get(eid) + aa3to1(mon));
+        }
+      }
+    }
+  }
+
+  // Fallback: derive sequence from _atom_site coordinate records (CA atoms),
+  // mirroring the SEQRES-less fallback in parsePDB.
+  if (entitySeq.size === 0) {
+    const atomChains = parseCifAtomSite(text);
+    if (atomChains.length > 0) return atomChains;
+    throw new Error('No sequence data found in CIF file. Expected _entity_poly, _entity_poly_seq, or _atom_site data.');
+  }
+
+  // ── 2. Entity→chain map ───────────────────────────────────────
+  const entityChains = new Map(); // entity_id → [chainId, ...]
+
+  const structAsymLoop = findLoop(text, '_struct_asym.');
+  if (structAsymLoop) {
+    const { columns, rows } = structAsymLoop;
+    const idIdx     = findCol(columns, 'struct_asym.id');
+    const entityIdx = findCol(columns, 'struct_asym.entity_id');
+    if (idIdx !== null && entityIdx !== null) {
+      for (const row of rows) {
+        const chainId = row[idIdx];
+        const eid     = row[entityIdx];
+        if (!entityChains.has(eid)) entityChains.set(eid, []);
+        entityChains.get(eid).push(chainId);
+      }
+    }
+  }
+
+  // ── 3. Build chains list ──────────────────────────────────────
+  const chains = [];
+  // Try to get entry id / title
+  const entryId = extractCifValue(text, '_entry.id')
+               || extractCifValue(text, '_struct.entry_id')
+               || 'structure';
+
+  for (const [entityId, seq] of entitySeq) {
+    if (!seq) continue;
+    const chainIds = entityChains.get(entityId) || [`entity_${entityId}`];
+    for (const chainId of chainIds) {
+      const header = `${entryId}|Chain_${chainId}|entity_${entityId}`;
+      chains.push({ header, seq, chainId });
+    }
+  }
+
+  if (chains.length === 0) throw new Error('Could not map sequences to chains in CIF file.');
+  return chains;
+}
+
+/* ── CIF Helpers ──────────────────────────────────────────────── */
+
+/**
+ * Fallback CIF sequence extraction from _atom_site coordinate records.
+ * Reads CA atoms (ATOM records only) and reconstructs per-chain sequences,
+ * exactly as parsePDB does for files that lack SEQRES records.
+ */
+function parseCifAtomSite(text) {
+  const atomSiteLoop = findLoop(text, '_atom_site.');
+  if (!atomSiteLoop) return [];
+
+  const { columns, rows } = atomSiteLoop;
+
+  const groupIdx = findCol(columns, 'atom_site.group_pdb');
+  const atomIdx  = findCol(columns, 'atom_site.label_atom_id')
+                ?? findCol(columns, 'atom_site.auth_atom_id');
+  const compIdx  = findCol(columns, 'atom_site.label_comp_id')
+                ?? findCol(columns, 'atom_site.auth_comp_id');
+  const chainIdx = findCol(columns, 'atom_site.label_asym_id')
+                ?? findCol(columns, 'atom_site.auth_asym_id');
+  const seqIdx   = findCol(columns, 'atom_site.label_seq_id')
+                ?? findCol(columns, 'atom_site.auth_seq_id');
+  const insIdx   = findCol(columns, 'atom_site.pdbx_pdb_ins_code');
+
+  if (compIdx === null || chainIdx === null) return [];
+
+  // chainId → Map<resKey, resName>  (insertion-code–aware, preserves order)
+  const atomMap = new Map();
+
+  for (const row of rows) {
+    // Skip HETATM records
+    if (groupIdx !== null && row[groupIdx]?.toUpperCase() !== 'ATOM') continue;
+    // Keep only Cα atoms
+    if (atomIdx !== null && row[atomIdx] !== 'CA') continue;
+
+    const resName = row[compIdx];
+    const chainId = row[chainIdx];
+    if (!resName || !chainId || chainId === '.' || chainId === '?') continue;
+
+    const seqNum  = seqIdx  !== null ? row[seqIdx]  : '';
+    const insCode = (insIdx !== null && row[insIdx] && row[insIdx] !== '?')
+                  ? row[insIdx] : '';
+    const resKey  = seqNum + insCode;
+
+    if (!atomMap.has(chainId)) atomMap.set(chainId, new Map());
+    if (!atomMap.get(chainId).has(resKey)) {
+      atomMap.get(chainId).set(resKey, resName);
+    }
+  }
+
+  const entryId = extractCifValue(text, '_entry.id')
+               || extractCifValue(text, '_struct.entry_id')
+               || 'structure';
+
+  const chains = [];
+  for (const [chainId, resMap] of atomMap) {
+    const seq = [...resMap.values()].map(aa3to1).join('');
+    if (seq) chains.push({ header: `${entryId}|Chain_${chainId}`, seq, chainId });
+  }
+  return chains;
+}
+
+
+/** Find a loop_ block that contains a given key prefix. */
+function findLoop(text, keyPrefix) {
+  // Escape the prefix for use in regex
+  const escaped = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // (?![\s\S]) is an end-of-string assertion: a negative lookahead that succeeds
+  // only when no characters remain. Plain $ would match every line-end with the m flag,
+  // so this trick is needed to handle files that have no trailing # / loop_ / data_.
+  const re = new RegExp(`loop_\\s*((?:_\\S+\\s+)*${escaped}\\S*(?:\\s+_\\S+)*)([\\s\\S]*?)(?=loop_|^data_|^#|(?![\\s\\S]))`, 'im');
+  const m = re.exec(text);
+  if (!m) return null;
+
+  const columnBlock = m[1];
+  const dataBlock   = m[2];
+
+  const columns = [];
+  const colRe = /_(\S+)/g;
+  let cm;
+  while ((cm = colRe.exec(columnBlock)) !== null) {
+    columns.push(cm[1].toLowerCase());
+  }
+
+  const rows = tokeniseLoopData(dataBlock, columns.length);
+  return { columns, rows };
+}
+
+function tokeniseLoopData(text, nCols) {
+  const tokens = [];
+  // Handle semicolon multi-line values first
+  const semiRe = /\n;([\s\S]*?)\n;/g;
+  let placeholder = 0;
+  const placeholders = {};
+  let cleaned = text.replace(semiRe, (_, val) => {
+    const key = `\x00${placeholder}\x00`;
+    placeholders[placeholder++] = val.trim();
+    return ` ${key} `;
+  });
+
+  const lineRe = /^(?![#_]|loop_|data_)(.+)$/gm;
+  let lm;
+  while ((lm = lineRe.exec(cleaned)) !== null) {
+    const line = lm[1].trim();
+    if (!line || line.startsWith('#')) continue;
+    const toks = tokeniseCifLine(line).map(t => {
+      const pm = /^\x00(\d+)\x00$/.exec(t);
+      return pm ? placeholders[pm[1]] : t;
+    });
+    tokens.push(...toks);
+  }
+
+  const rows = [];
+  if (nCols > 0) {
+    for (let i = 0; i + nCols <= tokens.length; i += nCols) {
+      rows.push(tokens.slice(i, i + nCols));
+    }
+  }
+  return rows;
+}
+
+function findCol(columns, name) {
+  const idx = columns.indexOf(name.toLowerCase());
+  return idx === -1 ? null : idx;
+}
+
+/** Extract a single key-value from CIF text (handles quoted values). */
+function extractCifValue(text, key) {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`${escaped}\\s+(['\"]?)([\\s\\S]+?)\\1(?=\\s*(?:_|loop_|#|$))`, 'i');
+  const m = re.exec(text);
+  if (!m) return null;
+  return m[2].trim();
+}
+
+/* ================================================================
+   UI State
+================================================================ */
+
+let currentFile  = null;
+let outputFormat = 'oneline'; // 'oneline' | 'multiline'
+let seqSource    = 'structure'; // 'structure' | 'author'
+let lastChains   = null;
+
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const convertBtn = document.getElementById('convert-btn');
+const errorBox   = document.getElementById('error-box');
+
+// ── Drag & Drop ───────────────────────────────────────────────
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+dropZone.addEventListener('click', e => {
+  if (e.target.classList.contains('upload-btn')) return;
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  const name = file.name.toLowerCase();
+  if (!name.endsWith('.pdb') && !name.endsWith('.cif') && !name.endsWith('.ent')) {
+    showError('Please upload a file with a .pdb, .cif, or .ent extension.');
+    return;
+  }
+  currentFile = file;
+  document.getElementById('file-name-display').textContent = `✔ ${file.name}`;
+  dropZone.classList.add('has-file');
+  clearError();
+  convertBtn.disabled = false;
+}
+
+// ── Sequence source selection ─────────────────────────────────
+
+function selectSeqSource(src) {
+  seqSource = src;
+  document.getElementById('lbl-structure').classList.toggle('selected', src === 'structure');
+  document.getElementById('lbl-author').classList.toggle('selected', src === 'author');
+  // Re-convert if a file is already loaded
+  if (currentFile) convert();
+}
+
+// ── Format selection ──────────────────────────────────────────
+
+function selectFormat(fmt) {
+  outputFormat = fmt;
+  document.getElementById('lbl-oneline').classList.toggle('selected', fmt === 'oneline');
+  document.getElementById('lbl-multiline').classList.toggle('selected', fmt === 'multiline');
+  // Re-render output if already converted
+  if (lastChains) renderOutput(lastChains);
+}
+
+// ── Convert ───────────────────────────────────────────────────
+
+function convert() {
+  if (!currentFile) return;
+  clearError();
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text   = e.target.result;
+      const name   = currentFile.name.toLowerCase();
+      const chains = name.endsWith('.cif')
+        ? parseCIF(text, seqSource)
+        : parsePDB(text, seqSource);
+
+      if (chains.length === 0) throw new Error('No protein chains found in the file.');
+
+      lastChains = chains;
+      renderOutput(chains);
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+  reader.readAsText(currentFile);
+}
+
+// ── Render output ─────────────────────────────────────────────
+
+function renderOutput(chains) {
+  const multiline = (outputFormat === 'multiline');
+  const fasta = toFasta(chains, multiline);
+
+  document.getElementById('fasta-output').value = fasta;
+
+  // Stats
+  const totalRes = chains.reduce((s, c) => s + c.seq.length, 0);
+  document.getElementById('output-stats').innerHTML = `
+    <span class="stat-chip">Chains: <strong>${chains.length}</strong></span>
+    <span class="stat-chip">Total residues: <strong>${totalRes.toLocaleString()}</strong></span>
+    <span class="stat-chip">Format: <strong>${multiline ? 'Multi-line (60 chars)' : 'One-line'}</strong></span>
+  `;
+
+  // Chain badges
+  document.getElementById('chain-list').innerHTML =
+    chains.map(c =>
+      `<span class="chain-badge">Chain ${c.chainId}: ${c.seq.length} aa</span>`
+    ).join('');
+
+  document.getElementById('output-section').style.display = 'block';
+  document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Copy / Download ───────────────────────────────────────────
+
+function copyOutput() {
+  const text = document.getElementById('fasta-output').value;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.action-btn.copy');
+    const orig = btn.textContent;
+    btn.textContent = '✔ Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.getElementById('fasta-output');
+    ta.select();
+    document.execCommand('copy');
+  });
+}
+
+function downloadOutput() {
+  const text = document.getElementById('fasta-output').value;
+  const baseName = currentFile ? currentFile.name.replace(/\.[^.]+$/, '') : 'sequences';
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${baseName}.fasta`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Error helpers ─────────────────────────────────────────────
+
+function showError(msg) {
+  errorBox.textContent = `⚠ ${msg}`;
+  errorBox.style.display = 'block';
+}
+
+function clearError() {
+  errorBox.textContent = '';
+  errorBox.style.display = 'none';
+}

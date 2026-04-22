@@ -1,0 +1,814 @@
+
+/* ================================================================
+   BLOSUM62
+================================================================ */
+const BLOSUM62 = {
+  A:{A:4,  R:-1, N:-2, D:-2, C:0,  Q:-1, E:-1, G:0,  H:-2, I:-1, L:-1, K:-1, M:-1, F:-2, P:-1, S:1,  T:0,  W:-3, Y:-2, V:0 },
+  R:{A:-1, R:5,  N:0,  D:-2, C:-3, Q:1,  E:0,  G:-2, H:0,  I:-3, L:-2, K:2,  M:-1, F:-3, P:-2, S:-1, T:-1, W:-3, Y:-2, V:-3},
+  N:{A:-2, R:0,  N:6,  D:1,  C:-3, Q:0,  E:0,  G:0,  H:1,  I:-3, L:-3, K:0,  M:-2, F:-3, P:-2, S:1,  T:0,  W:-4, Y:-2, V:-3},
+  D:{A:-2, R:-2, N:1,  D:6,  C:-3, Q:0,  E:2,  G:-1, H:-1, I:-3, L:-4, K:-1, M:-3, F:-3, P:-1, S:0,  T:-1, W:-4, Y:-3, V:-3},
+  C:{A:0,  R:-3, N:-3, D:-3, C:9,  Q:-3, E:-4, G:-3, H:-3, I:-1, L:-1, K:-3, M:-1, F:-2, P:-3, S:-1, T:-1, W:-2, Y:-2, V:-1},
+  Q:{A:-1, R:1,  N:0,  D:0,  C:-3, Q:5,  E:2,  G:-2, H:0,  I:-3, L:-2, K:1,  M:0,  F:-3, P:-1, S:0,  T:-1, W:-2, Y:-1, V:-2},
+  E:{A:-1, R:0,  N:0,  D:2,  C:-4, Q:2,  E:5,  G:-2, H:0,  I:-3, L:-3, K:1,  M:-2, F:-3, P:-1, S:0,  T:-1, W:-3, Y:-2, V:-2},
+  G:{A:0,  R:-2, N:0,  D:-1, C:-3, Q:-2, E:-2, G:6,  H:-2, I:-4, L:-4, K:-2, M:-3, F:-3, P:-2, S:0,  T:-2, W:-2, Y:-3, V:-3},
+  H:{A:-2, R:0,  N:1,  D:-1, C:-3, Q:0,  E:0,  G:-2, H:8,  I:-3, L:-3, K:-1, M:-2, F:-1, P:-2, S:-1, T:-2, W:-2, Y:2,  V:-3},
+  I:{A:-1, R:-3, N:-3, D:-3, C:-1, Q:-3, E:-3, G:-4, H:-3, I:4,  L:2,  K:-3, M:1,  F:0,  P:-3, S:-2, T:-1, W:-3, Y:-1, V:3 },
+  L:{A:-1, R:-2, N:-3, D:-4, C:-1, Q:-2, E:-3, G:-4, H:-3, I:2,  L:4,  K:-2, M:2,  F:0,  P:-3, S:-2, T:-1, W:-2, Y:-1, V:1 },
+  K:{A:-1, R:2,  N:0,  D:-1, C:-3, Q:1,  E:1,  G:-2, H:-1, I:-3, L:-2, K:5,  M:-1, F:-3, P:-1, S:0,  T:-1, W:-3, Y:-2, V:-2},
+  M:{A:-1, R:-1, N:-2, D:-3, C:-1, Q:0,  E:-2, G:-3, H:-2, I:1,  L:2,  K:-1, M:5,  F:0,  P:-2, S:-1, T:-1, W:-1, Y:-1, V:1 },
+  F:{A:-2, R:-3, N:-3, D:-3, C:-2, Q:-3, E:-3, G:-3, H:-1, I:0,  L:0,  K:-3, M:0,  F:6,  P:-4, S:-2, T:-2, W:1,  Y:3,  V:-1},
+  P:{A:-1, R:-2, N:-2, D:-1, C:-3, Q:-1, E:-1, G:-2, H:-2, I:-3, L:-3, K:-1, M:-2, F:-4, P:7,  S:-1, T:-1, W:-4, Y:-3, V:-2},
+  S:{A:1,  R:-1, N:1,  D:0,  C:-1, Q:0,  E:0,  G:0,  H:-1, I:-2, L:-2, K:0,  M:-1, F:-2, P:-1, S:4,  T:1,  W:-3, Y:-2, V:-2},
+  T:{A:0,  R:-1, N:0,  D:-1, C:-1, Q:-1, E:-1, G:-2, H:-2, I:-1, L:-1, K:-1, M:-1, F:-2, P:-1, S:1,  T:5,  W:-2, Y:-2, V:0 },
+  W:{A:-3, R:-3, N:-4, D:-4, C:-2, Q:-2, E:-3, G:-2, H:-2, I:-3, L:-2, K:-3, M:-1, F:1,  P:-4, S:-3, T:-2, W:11, Y:2,  V:-3},
+  Y:{A:-2, R:-2, N:-2, D:-3, C:-2, Q:-1, E:-2, G:-3, H:2,  I:-1, L:-1, K:-2, M:-1, F:3,  P:-3, S:-2, T:-2, W:2,  Y:7,  V:-1},
+  V:{A:0,  R:-3, N:-3, D:-3, C:-1, Q:-2, E:-2, G:-3, H:-3, I:3,  L:1,  K:-2, M:1,  F:-1, P:-2, S:-2, T:0,  W:-3, Y:-1, V:4 }
+};
+
+function blosum62(a, b) {
+  if (BLOSUM62[a] && BLOSUM62[a][b] !== undefined) return BLOSUM62[a][b];
+  if (BLOSUM62[b] && BLOSUM62[b][a] !== undefined) return BLOSUM62[b][a];
+  return -1;
+}
+
+/* ================================================================
+   FASTA PARSING
+================================================================ */
+function parseFasta(raw) {
+  const seqs = [];
+  let cur = null;
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t.startsWith('>')) {
+      if (cur) seqs.push(cur);
+      cur = { name: t.slice(1).trim() || `Seq${seqs.length + 1}`, seq: '' };
+    } else {
+      if (!cur) cur = { name: `Seq${seqs.length + 1}`, seq: '' };
+      cur.seq += t.toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g, '');
+    }
+  }
+  if (cur) seqs.push(cur);
+  return seqs;
+}
+
+/* ================================================================
+   NW alignment – correct traceback
+================================================================ */
+function nwAlignCorrect(seqA, seqB, gapOpen, gapExtend) {
+  const m = seqA.length, n = seqB.length;
+  const NEG = -1e15;
+  const w = n + 1;
+  const sz = (m + 1) * w;
+  const idx = (i, j) => i * w + j;
+
+  const M = new Float64Array(sz).fill(NEG);
+  const E = new Float64Array(sz).fill(NEG);
+  const F = new Float64Array(sz).fill(NEG);
+  // TB encodes: bits 0-1 for M state, bits 2-3 for E state, bits 4-5 for F state
+  // Simpler: separate arrays
+  const tbM = new Uint8Array(sz); // 1=diag(M), 2=from E, 3=from F
+  const tbE = new Uint8Array(sz); // 1=from M, 2=from E
+  const tbF = new Uint8Array(sz); // 1=from M, 3=from F
+
+  M[idx(0, 0)] = 0;
+  for (let i = 1; i <= m; i++) {
+    F[idx(i, 0)] = gapOpen + (i - 1) * gapExtend;
+    M[idx(i, 0)] = F[idx(i, 0)];
+    tbM[idx(i, 0)] = 3;
+    tbF[idx(i, 0)] = i === 1 ? 1 : 3;
+  }
+  for (let j = 1; j <= n; j++) {
+    E[idx(0, j)] = gapOpen + (j - 1) * gapExtend;
+    M[idx(0, j)] = E[idx(0, j)];
+    tbM[idx(0, j)] = 2;
+    tbE[idx(0, j)] = j === 1 ? 1 : 2;
+  }
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const ij = idx(i, j);
+
+      const eFromM = M[idx(i, j-1)] + gapOpen;
+      const eFromE = E[idx(i, j-1)] + gapExtend;
+      if (eFromM >= eFromE) { E[ij] = eFromM; tbE[ij] = 1; }
+      else                  { E[ij] = eFromE; tbE[ij] = 2; }
+
+      const fFromM = M[idx(i-1, j)] + gapOpen;
+      const fFromF = F[idx(i-1, j)] + gapExtend;
+      if (fFromM >= fFromF) { F[ij] = fFromM; tbF[ij] = 1; }
+      else                  { F[ij] = fFromF; tbF[ij] = 3; }
+
+      const sub    = blosum62(seqA[i-1], seqB[j-1]);
+      const mDiag  = M[idx(i-1, j-1)] + sub;
+      const best   = Math.max(mDiag, E[ij], F[ij]);
+      M[ij] = best;
+      if      (best === mDiag) tbM[ij] = 1;
+      else if (best === E[ij]) tbM[ij] = 2;
+      else                     tbM[ij] = 3;
+    }
+  }
+
+  // Traceback
+  let i = m, j = n;
+  let state = 1; // 1=M, 2=E, 3=F
+  const aBuf = [], bBuf = [];
+
+  while (i > 0 || j > 0) {
+    if (i === 0) {
+      // can only move left (E)
+      aBuf.push('-'); bBuf.push(seqB[j-1]); j--;
+      continue;
+    }
+    if (j === 0) {
+      // can only move up (F)
+      aBuf.push(seqA[i-1]); bBuf.push('-'); i--;
+      continue;
+    }
+
+    const ij = idx(i, j);
+    if (state === 1) {
+      const tb = tbM[ij];
+      if (tb === 1) { aBuf.push(seqA[i-1]); bBuf.push(seqB[j-1]); i--; j--; state = 1; }
+      else if (tb === 2) { state = 2; }
+      else               { state = 3; }
+    } else if (state === 2) {
+      const tb = tbE[ij];
+      aBuf.push('-'); bBuf.push(seqB[j-1]); j--;
+      state = tb === 1 ? 1 : 2;
+    } else {
+      const tb = tbF[ij];
+      aBuf.push(seqA[i-1]); bBuf.push('-'); i--;
+      state = tb === 1 ? 1 : 3;
+    }
+  }
+
+  aBuf.reverse(); bBuf.reverse();
+  return {
+    alignedA: aBuf.join(''),
+    alignedB: bBuf.join(''),
+    score: M[idx(m, n)]
+  };
+}
+
+/* ================================================================
+   CENTER-STAR MSA
+================================================================ */
+function centerStarMSA(sequences, gapOpen, gapExtend) {
+  const n = sequences.length;
+
+  // Step 1: all pairwise scores to find center
+  const scores = new Array(n).fill(0);
+  const pairAligns = {}; // "i,j" -> {alignedA, alignedB}
+
+  // We'll do n*(n-1)/2 pairwise alignments
+  let totalPairs = n * (n - 1) / 2;
+  let done = 0;
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const res = nwAlignCorrect(sequences[i].seq, sequences[j].seq, gapOpen, gapExtend);
+      scores[i] += res.score;
+      scores[j] += res.score;
+      pairAligns[`${i},${j}`] = res;
+      done++;
+    }
+  }
+
+  // Step 2: find center (highest sum score)
+  let centerIdx = 0;
+  for (let i = 1; i < n; i++) {
+    if (scores[i] > scores[centerIdx]) centerIdx = i;
+  }
+
+  // Step 3: get pairwise alignments of center vs each other sequence
+  // Each gives us aligned_center_k and aligned_other_k
+  const pairwisePairs = []; // [{ac, ao, otherIdx}] for each non-center
+  for (let k = 0; k < n; k++) {
+    if (k === centerIdx) continue;
+    let ac, ao;
+    const key1 = `${centerIdx},${k}`;
+    const key2 = `${k},${centerIdx}`;
+    if (pairAligns[key1]) { ac = pairAligns[key1].alignedA; ao = pairAligns[key1].alignedB; }
+    else                  { ac = pairAligns[key2].alignedB; ao = pairAligns[key2].alignedA; }
+    pairwisePairs.push({ ac, ao, otherIdx: k });
+  }
+
+  // Step 4: star alignment merging
+  const centerSeq = sequences[centerIdx].seq;
+  const L = centerSeq.length; // original center length
+
+  // For each pairwise alignment k, compute:
+  //   gapsBefore[k][i] = number of gap chars in ac_k before original center position i
+  //   otherCharsAt[k][i] = chars from ao_k that align with gaps before position i (insertions)
+  //   otherCharAt[k][i] = the ao_k character at original center position i
+
+  // maxGapsAt[i] = max over all k of gapsBefore[k][i]
+  const maxGapsAt = new Int32Array(L + 1).fill(0);
+
+  const parsedPairs = pairwisePairs.map(({ ac, ao, otherIdx }) => {
+    // Parse the pairwise alignment to extract, for each original center position i:
+    // - the gap string from ao before position i
+    // - the character in ao at position i
+    const gapsBeforePos = new Int32Array(L + 1).fill(0);  // gapsBeforePos[i] = gaps in ac before center char i
+    const aoCharsBeforePos = [];  // aoCharsBeforePos[i] = ao chars while ac has gaps before center char i
+    const aoCharAtPos = new Array(L).fill('-'); // ao character paired with center char at pos i
+
+    for (let i = 0; i <= L; i++) aoCharsBeforePos.push([]);
+
+    let centerPos = 0; // next original center residue index (0..L)
+    let gapCount = 0;
+    const aoGapsBuf = [];
+
+    for (let p = 0; p < ac.length; p++) {
+      if (ac[p] === '-') {
+        // gap in center: ao advances
+        gapCount++;
+        aoGapsBuf.push(ao[p]);
+      } else {
+        // ac[p] is an original center residue
+        gapsBeforePos[centerPos] = gapCount;
+        aoCharsBeforePos[centerPos] = aoGapsBuf.slice();
+        aoCharAtPos[centerPos] = ao[p];
+        centerPos++;
+        gapCount = 0;
+        aoGapsBuf.length = 0;
+      }
+    }
+    // trailing gaps (after last center residue = position L)
+    gapsBeforePos[L] = gapCount;
+    aoCharsBeforePos[L] = aoGapsBuf.slice();
+
+    // Update maxGapsAt
+    for (let i = 0; i <= L; i++) {
+      if (gapsBeforePos[i] > maxGapsAt[i]) maxGapsAt[i] = gapsBeforePos[i];
+    }
+
+    return { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx };
+  });
+
+  // Step 5: Build the merged MSA rows
+  // Total alignment length:
+  let alignLen = 0;
+  for (let i = 0; i <= L; i++) alignLen += maxGapsAt[i];
+  alignLen += L;
+
+  // Build aligned row for center sequence
+  const centerRow = [];
+  for (let i = 0; i <= L; i++) {
+    const g = maxGapsAt[i];
+    for (let x = 0; x < g; x++) centerRow.push('-');
+    if (i < L) centerRow.push(centerSeq[i]);
+  }
+
+  // Build aligned row for each non-center sequence
+  const rows = new Array(n);
+  rows[centerIdx] = centerRow.join('');
+
+  for (const { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx } of parsedPairs) {
+    const row = [];
+    for (let i = 0; i <= L; i++) {
+      const maxG = maxGapsAt[i];
+      const actualG = gapsBeforePos[i];
+      const aoChars = aoCharsBeforePos[i]; // chars from ao while ac has gap (length = actualG)
+      // Fill up to maxG characters
+      for (let x = 0; x < maxG; x++) {
+        if (x < actualG) row.push(aoChars[x]);
+        else             row.push('-');
+      }
+      if (i < L) row.push(aoCharAtPos[i]);
+    }
+    rows[otherIdx] = row.join('');
+  }
+
+  return { rows, centerIdx, alignLen };
+}
+
+/* ================================================================
+   COLOR SCHEMES
+================================================================ */
+const CLUSTAL_COLORS = {
+  A:'#ff9900', V:'#ff9900', F:'#ff9900', P:'#ff9900', M:'#ff9900',
+  I:'#ff9900', L:'#ff9900', W:'#ff9900',
+  D:'#ff4040', E:'#ff4040',
+  R:'#4040ff', K:'#4040ff',
+  H:'#7070ff',
+  S:'#00c040', T:'#00c040', Y:'#00c040', C:'#00c040',
+  N:'#00c040', G:'#00c040', Q:'#00c040'
+};
+
+const TAYLOR_COLORS = {
+  A:'#ccff00', R:'#0000ff', N:'#cc00ff', D:'#ff0000', C:'#ffff00',
+  Q:'#ff00cc', E:'#ff0066', G:'#ff9900', H:'#0066ff', I:'#66ff00',
+  L:'#33ff00', K:'#6600ff', M:'#00ff00', F:'#00ff66', P:'#ffcc00',
+  S:'#ff3300', T:'#ff6600', W:'#00ccff', Y:'#00ffcc', V:'#99ff00'
+};
+
+const KD_HYDRO = {
+  I:4.5, V:4.2, L:3.8, F:2.8, C:2.5, M:1.9, A:1.8,
+  G:-0.4, T:-0.7, W:-0.9, S:-0.8, Y:-1.3, P:-1.6,
+  H:-3.2, E:-3.5, Q:-3.5, D:-3.5, N:-3.5, K:-3.9, R:-4.5
+};
+const KD_MIN = -4.5, KD_MAX = 4.5;
+
+function hydroColor(aa) {
+  const val = KD_HYDRO[aa];
+  if (val === undefined) return '#e2e8f0';
+  const t = (val - KD_MIN) / (KD_MAX - KD_MIN); // 0=hydrophilic, 1=hydrophobic
+  if (t >= 0.5) {
+    // white → red
+    const u = (t - 0.5) * 2;
+    const r = 255, g = Math.round(255 * (1 - u)), b = Math.round(255 * (1 - u));
+    return `rgb(${r},${g},${b})`;
+  } else {
+    // blue → white
+    const u = t * 2;
+    const r = Math.round(255 * u), g = Math.round(255 * u), b = 255;
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+function conservationColor(pct) {
+  if (pct < 60)  return '#ffffff';
+  if (pct < 80)  return '#dbeafe';
+  if (pct < 90)  return '#93c5fd';
+  if (pct < 100) return '#3b82f6';
+  return '#1d4ed8';
+}
+
+function conservationTextColor(pct) {
+  return pct >= 90 ? '#ffffff' : '#1e293b';
+}
+
+/* ================================================================
+   COMPUTE COLUMN CONSERVATION
+================================================================ */
+function computeColumnStats(rows) {
+  if (!rows.length) return [];
+  const L = rows[0].length;
+  const stats = [];
+  for (let j = 0; j < L; j++) {
+    const counts = {};
+    let total = 0;
+    for (const row of rows) {
+      const c = row[j];
+      if (c !== '-') { counts[c] = (counts[c] || 0) + 1; total++; }
+    }
+    let maxCount = 0, maxChar = '-';
+    for (const [ch, cnt] of Object.entries(counts)) {
+      if (cnt > maxCount) { maxCount = cnt; maxChar = ch; }
+    }
+    const pct = total > 0 ? (maxCount / rows.length) * 100 : 0;
+    stats.push({ pct, maxChar, total });
+  }
+  return stats;
+}
+
+/* ================================================================
+   CONSENSUS ROW
+================================================================ */
+function buildConsensus(rows, colStats) {
+  return colStats.map(({ pct, maxChar }) => {
+    if (pct === 100) return '*';
+    if (pct >= 80)   return '+';
+    if (pct >= 60)   return '.';
+    return ' ';
+  }).join('');
+}
+
+/* ================================================================
+   COMPUTE % IDENTITY (most conserved)
+================================================================ */
+function computeIdentity(colStats) {
+  if (!colStats.length) return 0;
+  const perfectCols = colStats.filter(s => s.pct === 100).length;
+  return (perfectCols / colStats.length * 100).toFixed(1);
+}
+
+/* ================================================================
+   STATE
+================================================================ */
+let currentRows   = null;  // aligned rows (string[])
+let currentNames  = null;
+let currentStats  = null;  // column stats
+
+/* ================================================================
+   RENDER MSA TABLE
+================================================================ */
+function renderMSA(rows, names, colStats, scheme) {
+  const table = document.getElementById('msa-table');
+  table.innerHTML = '';
+  if (!rows || !rows.length) return;
+
+  const L = rows[0].length;
+  const consensus = buildConsensus(rows, colStats);
+
+  const fragment = document.createDocumentFragment();
+
+  // ── Column numbers row ─────────────────────────────────
+  const numRow = document.createElement('tr');
+  numRow.className = 'col-numbers';
+  const numNameTd = document.createElement('td');
+  numNameTd.className = 'name-cell';
+  numNameTd.textContent = '';
+  numRow.appendChild(numNameTd);
+
+  for (let j = 0; j < L; j++) {
+    const td = document.createElement('td');
+    const colNum = j + 1;
+    if (colNum % 10 === 0) {
+      td.textContent = colNum;
+      td.style.fontWeight = '700';
+      td.style.color = '#475569';
+    }
+    numRow.appendChild(td);
+  }
+  fragment.appendChild(numRow);
+
+  // ── Sequence rows ──────────────────────────────────────
+  rows.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    tr.className = 'seq-row';
+
+    const nameTd = document.createElement('td');
+    nameTd.className = 'name-cell';
+    nameTd.textContent = names[ri];
+    nameTd.title = names[ri];
+    tr.appendChild(nameTd);
+
+    for (let j = 0; j < L; j++) {
+      const ch = row[j];
+      const td = document.createElement('td');
+      td.className = 'res';
+      td.textContent = ch;
+
+      if (ch === '-') {
+        td.style.color = '#cbd5e1';
+        td.style.background = 'transparent';
+      } else {
+        let bg = '';
+        let fg = '#1e293b';
+        switch (scheme) {
+          case 'clustal':
+            bg = CLUSTAL_COLORS[ch] || '';
+            if (bg) fg = '#000';
+            break;
+          case 'taylor':
+            bg = TAYLOR_COLORS[ch] || '';
+            if (bg) fg = '#000';
+            break;
+          case 'hydrophobicity':
+            bg = hydroColor(ch);
+            break;
+          case 'conservation': {
+            const pct = colStats[j].pct;
+            bg = conservationColor(pct);
+            fg = conservationTextColor(pct);
+            break;
+          }
+          case 'none':
+          default:
+            bg = '';
+        }
+        if (bg) td.style.background = bg;
+        td.style.color = fg;
+      }
+
+      tr.appendChild(td);
+    }
+    fragment.appendChild(tr);
+  });
+
+  // ── Consensus row ──────────────────────────────────────
+  const consRow = document.createElement('tr');
+  consRow.className = 'seq-row consensus-row';
+  const consTd = document.createElement('td');
+  consTd.className = 'name-cell';
+  consTd.textContent = 'Consensus';
+  consRow.appendChild(consTd);
+
+  for (let j = 0; j < L; j++) {
+    const ch = consensus[j];
+    const td = document.createElement('td');
+    td.className = 'res';
+    td.textContent = ch;
+    td.style.color = ch === '*' ? '#1d4ed8' : ch === '+' ? '#2563eb' : ch === '.' ? '#93c5fd' : '#e2e8f0';
+    td.style.background = 'transparent';
+    consRow.appendChild(td);
+  }
+  fragment.appendChild(consRow);
+
+  // ── Conservation bar row ───────────────────────────────
+  const barRow = document.createElement('tr');
+  barRow.className = 'cons-bar';
+  const barNameTd = document.createElement('td');
+  barNameTd.className = 'name-cell';
+  barRow.appendChild(barNameTd);
+
+  for (let j = 0; j < L; j++) {
+    const td = document.createElement('td');
+    td.className = 'bar-cell';
+    const pct = colStats[j].pct;
+    const t = pct / 100;
+    const r = Math.round(30 + (239 - 30) * (1 - t));
+    const g = Math.round(64 + (246 - 64) * (1 - t));
+    const b = Math.round(175 + (255 - 175) * (1 - t));
+    // Actually let's use the same conservation color
+    td.style.background = conservationColor(pct);
+    td.style.height = `${Math.max(2, Math.round(pct / 100 * 8))}px`;
+    td.style.verticalAlign = 'bottom';
+    barRow.appendChild(td);
+  }
+  fragment.appendChild(barRow);
+
+  table.appendChild(fragment);
+}
+
+/* ================================================================
+   FASTA EXPORT
+================================================================ */
+function toFastaString(rows, names) {
+  return rows.map((r, i) => `>${names[i]}\n${r}`).join('\n');
+}
+
+/* ================================================================
+   UI HELPERS
+================================================================ */
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+function showWarn(msg) {
+  const el = document.getElementById('warn-box');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+function setProgress(label, pct) {
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+/* ================================================================
+   EXAMPLE DATA
+================================================================ */
+const EXAMPLE_FASTA = `>Human_CYC
+GDVEKGKKIFIMKCSQCHTVEKGGKHKTGPNLHGLFGRKTGQAPGYSYTA
+ANKNKGIIWGEDTLM
+>Bovine_CYC
+GDVEKGKKIFVQKCAQCHTVEKGGKHKTGPNLHGLFGRKTGQAEGYSYTD
+ANKNKGITWKEETLM
+>Chicken_CYC
+GDVEKGKKIFVQKCSQCHTVEKGGKHKTGPNLHGLFGRKTGQAEGFSYTD
+ANKNKGITWGEDTLM
+>Tuna_CYC
+GDVEKGKKIFVQRCAQCHTVEKGGKHKTGPNLHGLFGRKTGQAAGFSYTD
+ANKNKGITWGEDTLM
+>Yeast_CYC
+GSAKKGATLFKTRCLQCHTVEKGGPHKVGPNLHGIFGRHSGQAEGYSYTD
+ANIKKNVLWDENNMSE`;
+
+/* ================================================================
+   MAIN ALIGN FUNCTION  (async to allow UI updates)
+================================================================ */
+async function runAlignment() {
+  showError('');
+  showWarn('');
+  document.getElementById('results-card').style.display = 'none';
+
+  const raw = document.getElementById('fasta-input').value.trim();
+  if (!raw) { showError('Please enter at least two FASTA sequences.'); return; }
+
+  const seqs = parseFasta(raw);
+  if (seqs.length < 2) { showError('Please provide at least 2 sequences.'); return; }
+
+  const gapOpen   = parseFloat(document.getElementById('gap-open').value);
+  const gapExtend = parseFloat(document.getElementById('gap-extend').value);
+  if (isNaN(gapOpen) || isNaN(gapExtend)) { showError('Invalid gap penalty values.'); return; }
+
+  const warnings = [];
+  for (const s of seqs) {
+    if (s.seq.length > 1000) warnings.push(`${s.name} is ${s.seq.length} residues (>1000 AA — may be slow).`);
+    if (s.seq.length === 0)  warnings.push(`${s.name} has no recognizable amino-acid residues.`);
+  }
+  if (warnings.length) showWarn(warnings.join(' '));
+
+  // Show progress
+  const progressWrap = document.getElementById('progress-wrap');
+  progressWrap.style.display = 'block';
+  setProgress('Computing pairwise alignments…', 5);
+  document.getElementById('align-btn').disabled = true;
+
+  // Yield to browser for render
+  await new Promise(r => setTimeout(r, 20));
+
+  try {
+    const n = seqs.length;
+    const totalPairs = n * (n - 1) / 2;
+    let donePairs = 0;
+
+    // Patch nwAlignCorrect to report progress (run all pairs with progress update)
+    const scores = new Array(n).fill(0);
+    const pairAligns = {};
+
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const res = nwAlignCorrect(seqs[i].seq, seqs[j].seq, gapOpen, gapExtend);
+        scores[i] += res.score;
+        scores[j] += res.score;
+        pairAligns[`${i},${j}`] = res;
+        donePairs++;
+        const pct = 5 + Math.round((donePairs / totalPairs) * 75);
+        setProgress(`Computing pairwise alignments… (${donePairs}/${totalPairs})`, pct);
+        if (donePairs % 3 === 0) await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    setProgress('Merging into multiple alignment…', 82);
+    await new Promise(r => setTimeout(r, 10));
+
+    // Find center
+    let centerIdx = 0;
+    for (let i = 1; i < n; i++) {
+      if (scores[i] > scores[centerIdx]) centerIdx = i;
+    }
+
+    // Get pairwise alignments vs center
+    const pairwisePairs = [];
+    for (let k = 0; k < n; k++) {
+      if (k === centerIdx) continue;
+      let ac, ao;
+      const key1 = `${centerIdx},${k}`;
+      const key2 = `${k},${centerIdx}`;
+      if (pairAligns[key1]) { ac = pairAligns[key1].alignedA; ao = pairAligns[key1].alignedB; }
+      else                  { ac = pairAligns[key2].alignedB; ao = pairAligns[key2].alignedA; }
+      pairwisePairs.push({ ac, ao, otherIdx: k });
+    }
+
+    // Star alignment merging
+    const centerSeq = seqs[centerIdx].seq;
+    const L = centerSeq.length;
+    const maxGapsAt = new Int32Array(L + 1).fill(0);
+
+    const parsedPairs = pairwisePairs.map(({ ac, ao, otherIdx }) => {
+      const gapsBeforePos = new Int32Array(L + 1).fill(0);
+      const aoCharsBeforePos = [];
+      const aoCharAtPos = new Array(L).fill('-');
+
+      for (let i = 0; i <= L; i++) aoCharsBeforePos.push([]);
+
+      let centerPos = 0;
+      let gapCount = 0;
+      const aoGapsBuf = [];
+
+      for (let p = 0; p < ac.length; p++) {
+        if (ac[p] === '-') {
+          gapCount++;
+          aoGapsBuf.push(ao[p]);
+        } else {
+          gapsBeforePos[centerPos] = gapCount;
+          aoCharsBeforePos[centerPos] = aoGapsBuf.slice();
+          aoCharAtPos[centerPos] = ao[p];
+          centerPos++;
+          gapCount = 0;
+          aoGapsBuf.length = 0;
+        }
+      }
+      // trailing
+      gapsBeforePos[L] = gapCount;
+      aoCharsBeforePos[L] = aoGapsBuf.slice();
+
+      for (let i = 0; i <= L; i++) {
+        if (gapsBeforePos[i] > maxGapsAt[i]) maxGapsAt[i] = gapsBeforePos[i];
+      }
+
+      return { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx };
+    });
+
+    // Build rows
+    const rows = new Array(n);
+
+    // Center row
+    const centerRowArr = [];
+    for (let i = 0; i <= L; i++) {
+      for (let x = 0; x < maxGapsAt[i]; x++) centerRowArr.push('-');
+      if (i < L) centerRowArr.push(centerSeq[i]);
+    }
+    rows[centerIdx] = centerRowArr.join('');
+
+    // Other rows
+    for (const { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx } of parsedPairs) {
+      const row = [];
+      for (let i = 0; i <= L; i++) {
+        const maxG = maxGapsAt[i];
+        const actualG = gapsBeforePos[i];
+        const aoChars = aoCharsBeforePos[i];
+        for (let x = 0; x < maxG; x++) {
+          row.push(x < actualG ? aoChars[x] : '-');
+        }
+        if (i < L) row.push(aoCharAtPos[i]);
+      }
+      rows[otherIdx] = row.join('');
+    }
+
+    setProgress('Rendering…', 95);
+    await new Promise(r => setTimeout(r, 10));
+
+    const names = seqs.map(s => s.name);
+    const colStats = computeColumnStats(rows);
+    const identity = computeIdentity(colStats);
+    const alignLen = rows[0].length;
+
+    // Update info bar
+    const infoBar = document.getElementById('info-bar');
+    infoBar.innerHTML = `
+      <div class="info-stat">
+        <span class="info-stat-label">Sequences</span>
+        <span class="info-stat-value">${n}</span>
+      </div>
+      <div class="info-stat">
+        <span class="info-stat-label">Alignment length</span>
+        <span class="info-stat-value">${alignLen}</span>
+      </div>
+      <div class="info-stat">
+        <span class="info-stat-label">Fully conserved columns</span>
+        <span class="info-stat-value">${identity}%</span>
+      </div>
+      <div class="info-stat">
+        <span class="info-stat-label">Center sequence</span>
+        <span class="info-stat-value" style="font-size:0.95rem;">${names[centerIdx]}</span>
+      </div>
+    `;
+
+    // Store state
+    currentRows  = rows;
+    currentNames = names;
+    currentStats = colStats;
+
+    // Render
+    const scheme = document.getElementById('color-scheme').value;
+    renderMSA(rows, names, colStats, scheme);
+
+    document.getElementById('results-card').style.display = 'block';
+    setProgress('Done', 100);
+    await new Promise(r => setTimeout(r, 200));
+    progressWrap.style.display = 'none';
+
+  } catch (e) {
+    showError('Alignment failed: ' + e.message);
+    progressWrap.style.display = 'none';
+  } finally {
+    document.getElementById('align-btn').disabled = false;
+  }
+}
+
+/* ================================================================
+   EVENT LISTENERS
+================================================================ */
+document.getElementById('align-btn').addEventListener('click', runAlignment);
+
+document.getElementById('example-btn').addEventListener('click', () => {
+  document.getElementById('fasta-input').value = EXAMPLE_FASTA;
+  showError('');
+  showWarn('');
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  document.getElementById('fasta-input').value = '';
+  showError('');
+  showWarn('');
+  document.getElementById('results-card').style.display = 'none';
+  currentRows = currentNames = currentStats = null;
+});
+
+document.getElementById('color-scheme').addEventListener('change', () => {
+  if (currentRows && currentNames && currentStats) {
+    const scheme = document.getElementById('color-scheme').value;
+    renderMSA(currentRows, currentNames, currentStats, scheme);
+  }
+});
+
+document.getElementById('download-btn').addEventListener('click', () => {
+  if (!currentRows) return;
+  const text = toFastaString(currentRows, currentNames);
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'msa_alignment.fasta';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('copy-btn').addEventListener('click', async () => {
+  if (!currentRows) return;
+  const text = toFastaString(currentRows, currentNames);
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  } catch {
+    showWarn('Copy to clipboard failed. Please use the download button instead.');
+  }
+});
