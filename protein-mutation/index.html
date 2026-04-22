@@ -227,12 +227,19 @@
     /* ── Residue number ruler ────────────────────────────── */
     .ruler {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: #94a3b8;
       margin-bottom: 2px;
-      word-break: break-all;
       padding: 0 16px;
       line-height: 1.4;
+      word-break: break-all;
+    }
+    .ruler-tick {
+      display: inline-block;
+      width: 18px;
+      text-align: left;
+      overflow: visible;
+      white-space: nowrap;
     }
 
     /* ── Popup ───────────────────────────────────────────── */
@@ -613,21 +620,16 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
       for (let start = 0; start < total; start += CHUNK) {
         const end = Math.min(start + CHUNK, total);
 
-        // Ruler row
+        // Ruler row — one span per residue, same width as .res (18px); show number at pos 1 and every 10th
         const ruler = document.createElement('div');
         ruler.className = 'ruler';
-        let rulerText = '';
         for (let i = start; i < end; i++) {
-          const num = i + 1;
-          // Show number at every 10th (1-based) position in the chunk
-          if ((i + 1) % 10 === 0 || i === 0) {
-            const label = String(num);
-            rulerText += label.padStart(1, ' ') + ' '.repeat(Math.max(0, CHUNK - label.length));
-          } else {
-            rulerText += ' ';
-          }
+          const tick = document.createElement('span');
+          tick.className = 'ruler-tick';
+          const pos = i + 1;
+          tick.textContent = (pos === 1 || pos % 10 === 0) ? String(pos) : '';
+          ruler.appendChild(tick);
         }
-        ruler.textContent = rulerText;
 
         // Residue row
         const resRow = document.createElement('div');
@@ -638,7 +640,7 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
           const span = document.createElement('span');
           span.className = 'res ' + (seq.current[i] !== seq.original[i] ? 'mutated' : 'normal');
           span.textContent = seq.current[i];
-          span.title = `${seq.original[i]}${i + 1} (position ${i + 1})`;
+          span.title = `${seq.original[i]}${i + 1}${seq.current[i] !== seq.original[i] ? ' → ' + seq.current[i] : ''}`;
           span.dataset.si = si;
           span.dataset.ri = i;
           span.addEventListener('click', onResidueClick);
