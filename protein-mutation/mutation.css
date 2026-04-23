@@ -365,8 +365,8 @@ label.field-label {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px 18px;
-  overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-all;
   color: var(--text);
 }
 
