@@ -146,7 +146,7 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
           const tick = document.createElement('span');
           tick.className = 'ruler-tick';
           const pos = i + 1;
-          tick.textContent = (pos === 1 || pos % 10 === 0) ? String(pos) : '';
+          tick.textContent = (pos === 1 || pos % 10 === 0) ? String(pos) : (pos % 5 === 0 ? '·' : '');
           ruler.appendChild(tick);
         }
 
@@ -288,10 +288,7 @@ MDKKYSIGLDIGTNSVGWAVITDEYKVPSKKFKVLGNTDRHSIKKNLIGALLFDSGETAEATRLKRTARRRYTRRKNRIC
   /* ── Results ─────────────────────────────────────────────── */
   function buildFasta() {
     return sequences.map(seq => {
-      const seqStr = seq.current.join('');
-      const lines = [];
-      for (let i = 0; i < seqStr.length; i += 60) lines.push(seqStr.slice(i, i + 60));
-      return '>' + seq.name + '\n' + lines.join('\n');
+      return '>' + seq.name + '\n' + seq.current.join('');
     }).join('\n\n');
   }
 
