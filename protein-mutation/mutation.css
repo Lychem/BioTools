@@ -206,7 +206,7 @@ label.field-label {
 /* ── Residue cells ───────────────────────────────────── */
 .res {
   display: inline-block;
-  width: 18px;
+  width: 17px;
   text-align: center;
   border-radius: 3px;
   position: relative;
@@ -230,7 +230,7 @@ label.field-label {
 }
 .ruler-tick {
   display: inline-block;
-  width: 18px;
+  width: 17px;
   text-align: left;
   overflow: visible;
   white-space: nowrap;
