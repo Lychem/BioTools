@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Protein Mutation | BioTools</title>
+  <title data-i18n="page.mut">Protein Mutation | BioTools</title>
   <link rel="stylesheet" href="mutation.css">
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <div class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Protein Mutation</div>
-    <h1>🔯 Protein Mutation</h1>
-    <p>Number residues in protein sequences and introduce point mutations interactively or via text notation (e.g. A20N,F54Y).</p>
+    <div class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › <span data-i18n="nav.mut">Protein Mutation</span></div>
+    <h1 data-i18n="mut.h1">🔯 Protein Mutation</h1>
+    <p data-i18n="mut.subtitle">Number residues in protein sequences and introduce point mutations interactively or via text notation (e.g. A20N,F54Y).</p>
   </div>
 </header>
 
@@ -20,12 +20,12 @@
 
   <!-- ── Input card ──────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Input Sequences</div>
-    <label class="field-label" for="seq-input">FASTA sequences (one or more)</label>
-    <textarea id="seq-input" spellcheck="false" placeholder=">SequenceName&#10;MKTAYIAKQRQISFVK..."></textarea>
+    <div class="card-title" data-i18n="mut.input">Input Sequences</div>
+    <label class="field-label" for="seq-input" data-i18n="mut.seq-label">FASTA sequences (one or more)</label>
+    <textarea id="seq-input" spellcheck="false" data-i18n-placeholder="mut.seq-ph" placeholder=">SequenceName&#10;MKTAYIAKQRQISFVK..."></textarea>
     <div class="btn-row">
-      <button id="run-btn">Number &amp; Display Sequences</button>
-      <button class="btn-secondary" id="example-btn">Load Example</button>
+      <button id="run-btn" data-i18n="mut.run">Number &amp; Display Sequences</button>
+      <button class="btn-secondary" id="example-btn" data-i18n="mut.example">Load Example</button>
     </div>
   </div>
 
@@ -34,16 +34,16 @@
 
   <!-- ── Mutation editor card ────────────────────────────── -->
   <div class="card" id="editor-section" style="display:none">
-    <div class="card-title">Mutation Editor</div>
+    <div class="card-title" data-i18n="mut.editor">Mutation Editor</div>
 
     <div class="tab-bar">
-      <button class="tab-btn active" data-tab="interactive">Interactive</button>
-      <button class="tab-btn" data-tab="text">Text Notation</button>
+      <button class="tab-btn active" data-tab="interactive" data-i18n="mut.tab.interactive">Interactive</button>
+      <button class="tab-btn" data-tab="text" data-i18n="mut.tab.text">Text Notation</button>
     </div>
 
     <!-- Interactive tab -->
     <div class="tab-panel active" id="tab-interactive">
-      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:18px;">
+      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:18px;" data-i18n="mut.interactive.hint">
         Click any residue to change it. Mutated residues are highlighted in amber.
       </p>
       <div id="seq-display"></div>
@@ -51,36 +51,36 @@
 
     <!-- Text tab -->
     <div class="tab-panel" id="tab-text">
-      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:14px;">
+      <p style="font-size:0.86rem;color:var(--slate);margin-bottom:14px;" data-i18n="mut.text.hint">
         Enter mutations separated by commas. Each mutation uses the format <strong>OrigAA&thinsp;Position&thinsp;NewAA</strong> (e.g. <code>A20N,F54Y</code>). The original amino acid is optional but will be validated when provided.
       </p>
       <div class="text-mode-row">
         <div class="field-wrap">
-          <label class="field-label" for="seq-select">Apply to sequence</label>
+          <label class="field-label" for="seq-select" data-i18n="mut.seq-select">Apply to sequence</label>
           <select id="seq-select" style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:7px;font-size:0.88rem;background:#f8fafc;color:var(--text);outline:none;transition:border-color 0.2s;">
           </select>
         </div>
         <div class="field-wrap">
-          <label class="field-label" for="mutation-text">Mutations</label>
-          <input id="mutation-text" type="text" placeholder="A20N,F54Y" spellcheck="false" />
-          <div class="hint">Format: [OrigAA]Position[NewAA] — e.g. A20N or just 20N or A20N,F54Y</div>
+          <label class="field-label" for="mutation-text" data-i18n="mut.mutations">Mutations</label>
+          <input id="mutation-text" type="text" data-i18n-placeholder="mut.mut-ph" placeholder="A20N,F54Y" spellcheck="false" />
+          <div class="hint" data-i18n="mut.hint">Format: [OrigAA]Position[NewAA] — e.g. A20N or just 20N or A20N,F54Y</div>
         </div>
-        <button id="apply-text-btn">Apply</button>
+        <button id="apply-text-btn" data-i18n="mut.apply">Apply</button>
       </div>
     </div>
 
     <div class="btn-row" style="margin-top:24px;">
-      <button class="action-btn reset" id="reset-btn">Reset All Mutations</button>
+      <button class="action-btn reset" id="reset-btn" data-i18n="mut.reset">Reset All Mutations</button>
     </div>
   </div>
 
   <!-- ── Results card ────────────────────────────────────── -->
   <div class="card" id="results-section">
     <div class="results-header">
-      <div class="card-title">Mutated Sequences</div>
+      <div class="card-title" data-i18n="mut.results">Mutated Sequences</div>
       <div class="action-btns">
-        <button class="action-btn copy" id="copy-btn">Copy FASTA</button>
-        <button class="action-btn download" id="download-btn">Download FASTA</button>
+        <button class="action-btn copy" id="copy-btn" data-i18n="mut.copy">Copy FASTA</button>
+        <button class="action-btn download" id="download-btn" data-i18n="mut.download">Download FASTA</button>
       </div>
     </div>
 
@@ -91,15 +91,16 @@
 
 </main>
 
-<footer>BioTools — runs entirely in your browser. No data is sent to any server.</footer>
+<footer data-i18n="common.footer.branded">BioTools — runs entirely in your browser. No data is sent to any server.</footer>
 
 <!-- ── Residue popup ──────────────────────────────────────── -->
 <div id="aa-popup">
-  <div id="aa-popup-title">Mutate residue <span id="popup-res-label"></span></div>
+  <div id="aa-popup-title"><span data-i18n="mut.popup.title">Mutate residue</span> <span id="popup-res-label"></span></div>
   <div class="aa-grid" id="aa-grid"></div>
-  <button id="popup-close">Cancel</button>
+  <button id="popup-close" data-i18n="mut.popup.cancel">Cancel</button>
 </div>
 
+<script src="../i18n.js"></script>
 <script src="mutation.js"></script>
 </body>
 </html>

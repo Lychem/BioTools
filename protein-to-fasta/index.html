@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Protein Structure → FASTA | BioTools</title>
+  <title data-i18n="page.p2f">Protein Structure → FASTA | BioTools</title>
   <link rel="stylesheet" href="struct2fasta.css">
 </head>
 <body>
 
   <header>
     <div class="header-inner">
-      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Protein Structure → FASTA</p>
-      <h1>🔬 Protein Structure → FASTA</h1>
-      <p>Extract amino-acid sequences from a PDB or mmCIF file and export as FASTA.</p>
+      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › <span data-i18n="nav.p2f">Protein Structure → FASTA</span></p>
+      <h1 data-i18n="p2f.h1">🔬 Protein Structure → FASTA</h1>
+      <p data-i18n="p2f.subtitle">Extract amino-acid sequences from a PDB or mmCIF file and export as FASTA.</p>
     </div>
   </header>
 
@@ -20,52 +20,52 @@
 
     <!-- ① Upload -->
     <div class="card">
-      <p class="card-title">① Upload Structure File</p>
+      <p class="card-title" data-i18n="p2f.step1">① Upload Structure File</p>
 
       <div id="drop-zone">
         <div class="dz-icon">📂</div>
-        <p class="dz-primary">Drag &amp; drop your PDB or CIF file here</p>
-        <p class="dz-secondary">or click the button below to browse</p>
+        <p class="dz-primary" data-i18n="common.dz.primary">Drag &amp; drop your PDB or CIF file here</p>
+        <p class="dz-secondary" data-i18n="common.dz.secondary">or click the button below to browse</p>
         <p class="dz-file-name" id="file-name-display"></p>
-        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Browse file</button>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()" data-i18n="common.browse">Browse file</button>
         <input type="file" id="file-input" accept=".pdb,.cif,.ent" />
       </div>
     </div>
 
     <!-- ② Options -->
     <div class="card">
-      <p class="card-title">② Options</p>
+      <p class="card-title" data-i18n="p2f.step2">② Options</p>
 
-      <p class="option-subtitle">Sequence source</p>
+      <p class="option-subtitle" data-i18n="p2f.seqsrc">Sequence source</p>
       <div class="options-row" style="margin-bottom:20px;">
 
         <label class="radio-card selected" id="lbl-structure" onclick="selectSeqSource('structure')">
           <input type="radio" name="src" value="structure" checked />
-          <span class="radio-label">Structure-derived</span>
-          <p class="radio-desc">Extracted from ATOM coordinates (Cα atoms). Reflects residues actually present in the model — recommended for AI-predicted structures.</p>
+          <span class="radio-label" data-i18n="p2f.struct">Structure-derived</span>
+          <p class="radio-desc" data-i18n="p2f.struct.desc">Extracted from ATOM coordinates (Cα atoms). Reflects residues actually present in the model — recommended for AI-predicted structures.</p>
         </label>
 
         <label class="radio-card" id="lbl-author" onclick="selectSeqSource('author')">
           <input type="radio" name="src" value="author" />
-          <span class="radio-label">Author-annotated</span>
-          <p class="radio-desc">From SEQRES / _entity_poly records. May include residues not resolved in the structure.</p>
+          <span class="radio-label" data-i18n="p2f.author">Author-annotated</span>
+          <p class="radio-desc" data-i18n="p2f.author.desc">From SEQRES / _entity_poly records. May include residues not resolved in the structure.</p>
         </label>
 
       </div>
 
-      <p class="option-subtitle">Output format</p>
+      <p class="option-subtitle" data-i18n="p2f.outfmt">Output format</p>
       <div class="options-row">
 
         <label class="radio-card selected" id="lbl-oneline" onclick="selectFormat('oneline')">
           <input type="radio" name="fmt" value="oneline" checked />
-          <span class="radio-label">One-line FASTA</span>
-          <p class="radio-desc">Each sequence on a single line following the header.</p>
+          <span class="radio-label" data-i18n="p2f.oneline">One-line FASTA</span>
+          <p class="radio-desc" data-i18n="p2f.oneline.desc">Each sequence on a single line following the header.</p>
         </label>
 
         <label class="radio-card" id="lbl-multiline" onclick="selectFormat('multiline')">
           <input type="radio" name="fmt" value="multiline" />
-          <span class="radio-label">Multi-line FASTA</span>
-          <p class="radio-desc">Sequence wrapped at 60 characters per line (standard).</p>
+          <span class="radio-label" data-i18n="p2f.multiline">Multi-line FASTA</span>
+          <p class="radio-desc" data-i18n="p2f.multiline.desc">Sequence wrapped at 60 characters per line (standard).</p>
         </label>
 
       </div>
@@ -75,15 +75,15 @@
     <div id="error-box"></div>
 
     <!-- ③ Convert -->
-    <button id="convert-btn" disabled onclick="convert()">③ Convert to FASTA</button>
+    <button id="convert-btn" disabled onclick="convert()" data-i18n="p2f.convert">③ Convert to FASTA</button>
 
     <!-- ④ Output -->
     <div class="card" id="output-section">
       <div class="output-header">
-        <p class="card-title">④ FASTA Output</p>
+        <p class="card-title" data-i18n="p2f.step4">④ FASTA Output</p>
         <div class="output-actions">
-          <button class="action-btn copy" onclick="copyOutput()">⧉ Copy</button>
-          <button class="action-btn download" onclick="downloadOutput()">⬇ Download .fasta</button>
+          <button class="action-btn copy" onclick="copyOutput()" data-i18n="common.copy">⧉ Copy</button>
+          <button class="action-btn download" onclick="downloadOutput()" data-i18n="p2f.dl-fasta">⬇ Download .fasta</button>
         </div>
       </div>
 
@@ -94,8 +94,9 @@
 
   </main>
 
-  <footer>Runs entirely in your browser — no data is ever uploaded to any server.</footer>
+  <footer data-i18n="common.footer">Runs entirely in your browser — no data is ever uploaded to any server.</footer>
 
+  <script src="../i18n.js"></script>
   <script src="struct2fasta.js"></script>
 
 </body>

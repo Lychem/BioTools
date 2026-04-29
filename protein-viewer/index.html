@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Protein Structure Viewer | BioTools</title>
+  <title data-i18n="page.viewer">Protein Structure Viewer | BioTools</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css" />
   <link rel="stylesheet" href="viewer.css" />
 </head>
@@ -11,9 +11,9 @@
 
   <header>
     <div class="header-inner">
-      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Protein Structure Viewer</p>
-      <h1>🔭 Protein Structure Viewer</h1>
-      <p>Visualize PDB and mmCIF protein structures interactively — entirely in your browser.</p>
+      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › <span data-i18n="nav.viewer">Protein Structure Viewer</span></p>
+      <h1 data-i18n="viewer.h1">🔭 Protein Structure Viewer</h1>
+      <p data-i18n="viewer.subtitle">Visualize PDB and mmCIF protein structures interactively — entirely in your browser.</p>
     </div>
   </header>
 
@@ -22,8 +22,8 @@
     <!-- ① Input -->
     <div class="card">
       <div class="tabs">
-        <button class="tab-btn active" id="tab-file" onclick="switchTab('file')">📂 Upload File</button>
-        <button class="tab-btn"        id="tab-pdb"  onclick="switchTab('pdb')">🔍 Fetch by PDB ID</button>
+        <button class="tab-btn active" id="tab-file" onclick="switchTab('file')" data-i18n="viewer.tab.file">📂 Upload File</button>
+        <button class="tab-btn"        id="tab-pdb"  onclick="switchTab('pdb')" data-i18n="viewer.tab.pdb">🔍 Fetch by PDB ID</button>
       </div>
 
       <!-- File upload panel -->
@@ -32,10 +32,10 @@
              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
              onclick="document.getElementById('file-input').click()">
           <div class="dz-icon">📂</div>
-          <p class="dz-primary">Drag &amp; drop your structure file here</p>
-          <p class="dz-secondary">Supported: .pdb, .cif, .mmcif, .ent</p>
+          <p class="dz-primary" data-i18n="viewer.dz.primary">Drag &amp; drop your structure file here</p>
+          <p class="dz-secondary" data-i18n="viewer.dz.secondary">Supported: .pdb, .cif, .mmcif, .ent</p>
           <p class="dz-file-name" id="file-name-display"></p>
-          <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Browse file</button>
+          <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()" data-i18n="common.browse">Browse file</button>
           <input type="file" id="file-input" accept=".pdb,.cif,.mmcif,.ent" onchange="onFileSelected(event)" />
         </div>
       </div>
@@ -45,7 +45,7 @@
         <div class="pdb-row">
           <input type="text" id="pdb-input" placeholder="e.g. 1CRN or 4HHB"
                  maxlength="8" oninput="onPdbInput()" onkeydown="if(event.key==='Enter') visualize()" />
-          <button class="upload-btn" onclick="visualize()" id="pdb-go-btn" style="margin-top:0">Load</button>
+          <button class="upload-btn" onclick="visualize()" id="pdb-go-btn" style="margin-top:0" data-i18n="viewer.pdb.load">Load</button>
         </div>
         <p class="pdb-hint">
           Examples:
@@ -64,18 +64,18 @@
     <div id="error-box"></div>
 
     <!-- ② Visualize button -->
-    <button id="visualize-btn" disabled onclick="visualize()">② Visualize Structure</button>
+    <button id="visualize-btn" disabled onclick="visualize()" data-i18n="viewer.visualize">② Visualize Structure</button>
 
     <!-- ③ Viewer + Contact Map -->
     <div class="card" id="viewer-card">
 
       <!-- Header row -->
       <div class="viewer-header">
-        <span class="viewer-title">③ 3D Viewer</span>
+        <span class="viewer-title" data-i18n="viewer.3d-header">③ 3D Viewer</span>
         <span id="structure-label"></span>
         <label class="cm-toggle-label" title="Showing the contact map loads an extra library and may slow down older devices">
           <input type="checkbox" id="cm-toggle" onchange="onToggleContactMap(this.checked)" />
-          Show Contact Map
+          <span data-i18n="viewer.cm-toggle">Show Contact Map</span>
         </label>
       </div>
 
@@ -90,8 +90,8 @@
         <div class="cm-ctrl">
           <label for="cm-mode-select">Map type</label>
           <select id="cm-mode-select" onchange="onCmMode(this.value)">
-            <option value="contact">Contact map</option>
-            <option value="distance">Distance map</option>
+          <option value="contact" data-i18n="viewer.cm.contact">Contact map</option>
+          <option value="distance" data-i18n="viewer.cm.distance">Distance map</option>
           </select>
         </div>
         <div id="cm-chain-info" class="cm-chain-info"></div>
@@ -105,7 +105,7 @@
           <div id="mol-viewer"></div>
           <div id="viewer-placeholder">
             <div class="placeholder-icon">🧬</div>
-            <div class="placeholder-text">Upload a file or enter a PDB ID to visualize a structure</div>
+            <div class="placeholder-text" data-i18n="viewer.placeholder">Upload a file or enter a PDB ID to visualize a structure</div>
           </div>
           <div id="loading-overlay">
             <div class="spinner"></div>
@@ -134,13 +134,14 @@
 
   </main>
 
-  <footer>Runs entirely in your browser — no data is ever uploaded to any server.
+  <footer data-i18n="viewer.footer">Runs entirely in your browser — no data is ever uploaded to any server.
     3D visualization powered by <a href="https://molstar.org/" target="_blank" rel="noopener noreferrer"
       style="color:inherit">Mol*</a>.
     Optional contact map powered by <a href="https://plotly.com/javascript/" target="_blank" rel="noopener noreferrer"
       style="color:inherit">Plotly.js</a> (loaded on demand).
   </footer>
 
+  <script src="../i18n.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js"></script>
   <script src="viewer.js"></script>
 

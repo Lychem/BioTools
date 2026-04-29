@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CIF ↔ PDB Converter | BioTools</title>
+  <title data-i18n="page.cifpdb">CIF ↔ PDB Converter | BioTools</title>
   <link rel="stylesheet" href="converter.css">
 </head>
 <body>
 
   <header>
     <div class="header-inner">
-      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › CIF ↔ PDB Converter</p>
-      <h1>🔄 CIF ↔ PDB Converter</h1>
-      <p>Convert between mmCIF and PDB structure formats — entirely in your browser.</p>
+      <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › <span data-i18n="nav.cifpdb">CIF ↔ PDB Converter</span></p>
+      <h1 data-i18n="cifpdb.h1">🔄 CIF ↔ PDB Converter</h1>
+      <p data-i18n="cifpdb.subtitle">Convert between mmCIF and PDB structure formats — entirely in your browser.</p>
     </div>
   </header>
 
@@ -20,41 +20,41 @@
 
     <!-- ① Upload -->
     <div class="card">
-      <p class="card-title">① Upload Structure File</p>
+      <p class="card-title" data-i18n="cifpdb.step1">① Upload Structure File</p>
       <div id="drop-zone">
         <div class="dz-icon">📂</div>
-        <p class="dz-primary">Drag &amp; drop your PDB or CIF file here</p>
-        <p class="dz-secondary">or click the button below to browse</p>
+        <p class="dz-primary" data-i18n="cifpdb.dz.primary">Drag &amp; drop your PDB or CIF file here</p>
+        <p class="dz-secondary" data-i18n="common.dz.secondary">or click the button below to browse</p>
         <p class="dz-file-name" id="file-name-display"></p>
-        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Browse file</button>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()" data-i18n="common.browse">Browse file</button>
         <input type="file" id="file-input" accept=".pdb,.cif,.ent,.mmcif" />
       </div>
     </div>
 
     <!-- ② Direction -->
     <div class="card">
-      <p class="card-title">② Conversion Direction</p>
+      <p class="card-title" data-i18n="cifpdb.step2">② Conversion Direction</p>
       <div class="direction-row">
         <span class="fmt-badge unknown" id="src-badge">— source —</span>
         <span class="arrow-icon">→</span>
         <span class="fmt-badge unknown" id="dst-badge">— output —</span>
       </div>
-      <p class="direction-note" id="direction-note">Upload a file to detect the conversion direction automatically.</p>
+      <p class="direction-note" id="direction-note" data-i18n="cifpdb.dir-note">Upload a file to detect the conversion direction automatically.</p>
     </div>
 
     <!-- Error -->
     <div id="error-box"></div>
 
     <!-- ③ Convert -->
-    <button id="convert-btn" disabled onclick="convert()">③ Convert</button>
+    <button id="convert-btn" disabled onclick="convert()" data-i18n="cifpdb.convert">③ Convert</button>
 
     <!-- ④ Output -->
     <div class="card" id="output-section">
       <div class="output-header">
-        <p class="card-title">④ Converted Output</p>
+        <p class="card-title" data-i18n="cifpdb.step4">④ Converted Output</p>
         <div class="output-actions">
-          <button class="action-btn copy" onclick="copyOutput()">⧉ Copy</button>
-          <button class="action-btn download" id="download-btn" onclick="downloadOutput()">⬇ Download</button>
+          <button class="action-btn copy" onclick="copyOutput()" data-i18n="common.copy">⧉ Copy</button>
+          <button class="action-btn download" id="download-btn" onclick="downloadOutput()" data-i18n="common.download">⬇ Download</button>
         </div>
       </div>
       <div id="output-stats"></div>
@@ -63,8 +63,9 @@
 
   </main>
 
-  <footer>Runs entirely in your browser — no data is ever uploaded to any server.</footer>
+  <footer data-i18n="common.footer">Runs entirely in your browser — no data is ever uploaded to any server.</footer>
 
+  <script src="../i18n.js"></script>
   <script src="converter.js"></script>
 
 </body>
