@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pairwise Sequence Alignment | BioTools</title>
+  <title data-i18n="page.align">Pairwise Sequence Alignment | BioTools</title>
   <link rel="stylesheet" href="alignment.css">
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › Pairwise Sequence Alignment</p>
-    <h1>🔗 Pairwise Sequence Alignment</h1>
-    <p>Align two protein sequences with Needleman-Wunsch (global) or Smith-Waterman (local) using affine gap penalties.</p>
+    <p class="breadcrumb"><a href="../index.html">🧬 BioTools</a> › <span data-i18n="nav.align">Pairwise Sequence Alignment</span></p>
+    <h1 data-i18n="align.h1">🔗 Pairwise Sequence Alignment</h1>
+    <p data-i18n="align.subtitle">Align two protein sequences with Needleman-Wunsch (global) or Smith-Waterman (local) using affine gap penalties.</p>
   </div>
 </header>
 
@@ -20,70 +20,70 @@
 
   <!-- ① Sequences -->
   <div class="card">
-    <p class="card-title">① Sequences</p>
+    <p class="card-title" data-i18n="align.step1">① Sequences</p>
     <div class="seq-pair">
       <div class="seq-group">
-        <label for="seq1-name">Name</label>
+        <label for="seq1-name" data-i18n="align.name">Name</label>
         <input type="text" id="seq1-name" class="seq-name-input" value="Sequence 1" />
-        <label for="seq1">Sequence (FASTA or raw amino acids)</label>
-        <textarea id="seq1" class="seq-textarea" placeholder="Paste FASTA or raw amino acid sequence…" spellcheck="false"></textarea>
+        <label for="seq1" data-i18n="align.seq-label">Sequence (FASTA or raw amino acids)</label>
+        <textarea id="seq1" class="seq-textarea" data-i18n-placeholder="align.seq1-ph" placeholder="Paste FASTA or raw amino acid sequence…" spellcheck="false"></textarea>
       </div>
       <div class="seq-group">
-        <label for="seq2-name">Name</label>
+        <label for="seq2-name" data-i18n="align.name">Name</label>
         <input type="text" id="seq2-name" class="seq-name-input" value="Sequence 2" />
-        <label for="seq2">Sequence (FASTA or raw amino acids)</label>
-        <textarea id="seq2" class="seq-textarea" placeholder="Paste FASTA or raw amino acid sequence…" spellcheck="false"></textarea>
+        <label for="seq2" data-i18n="align.seq-label">Sequence (FASTA or raw amino acids)</label>
+        <textarea id="seq2" class="seq-textarea" data-i18n-placeholder="align.seq2-ph" placeholder="Paste FASTA or raw amino acid sequence…" spellcheck="false"></textarea>
       </div>
     </div>
     <div class="input-footer">
-      <button class="btn-secondary" onclick="loadExample()">📋 Load example sequences</button>
+      <button class="btn-secondary" onclick="loadExample()" data-i18n="align.load-ex">📋 Load example sequences</button>
     </div>
   </div>
 
   <!-- ② Parameters -->
   <div class="card">
-    <p class="card-title">② Parameters</p>
+    <p class="card-title" data-i18n="align.step2">② Parameters</p>
     <div class="params-grid">
 
       <div class="param-group">
-        <label for="algorithm">Algorithm</label>
+        <label for="algorithm" data-i18n="align.algorithm">Algorithm</label>
         <select id="algorithm" class="param-select">
-          <option value="global">Global (Needleman-Wunsch)</option>
-          <option value="local">Local (Smith-Waterman)</option>
+          <option value="global" data-i18n="align.algo.global">Global (Needleman-Wunsch)</option>
+          <option value="local" data-i18n="align.algo.local">Local (Smith-Waterman)</option>
         </select>
       </div>
 
       <div class="param-group">
-        <label for="matrix">Substitution Matrix</label>
+        <label for="matrix" data-i18n="align.matrix">Substitution Matrix</label>
         <select id="matrix" class="param-select" onchange="toggleSimpleParams()">
           <option value="blosum62">BLOSUM62</option>
           <option value="pam250">PAM250</option>
-          <option value="simple">Simple (match / mismatch)</option>
+          <option value="simple" data-i18n="align.matrix.simple">Simple (match / mismatch)</option>
         </select>
       </div>
 
       <div class="param-group" id="simple-match-grp" style="display:none">
-        <label for="match-score">Match score</label>
+        <label for="match-score" data-i18n="align.match">Match score</label>
         <input type="number" id="match-score" class="param-number" value="1" step="1" />
       </div>
 
       <div class="param-group" id="simple-mismatch-grp" style="display:none">
-        <label for="mismatch-score">Mismatch score</label>
+        <label for="mismatch-score" data-i18n="align.mismatch">Mismatch score</label>
         <input type="number" id="mismatch-score" class="param-number" value="-1" step="1" />
       </div>
 
       <div class="param-group">
-        <label for="gap-open">Gap open penalty</label>
+        <label for="gap-open" data-i18n="align.gap-open">Gap open penalty</label>
         <input type="number" id="gap-open" class="param-number" value="-11" step="1" />
       </div>
 
       <div class="param-group">
-        <label for="gap-extend">Gap extension penalty</label>
+        <label for="gap-extend" data-i18n="align.gap-extend">Gap extension penalty</label>
         <input type="number" id="gap-extend" class="param-number" value="-1" step="1" />
       </div>
 
     </div>
-    <button id="align-btn" onclick="runAlignment()">⚡ Align</button>
+    <button id="align-btn" onclick="runAlignment()" data-i18n="align.btn">⚡ Align</button>
   </div>
 
   <!-- Error -->
@@ -92,10 +92,10 @@
   <!-- ③ Results -->
   <div class="card" id="results-section">
     <div class="results-header">
-      <p class="card-title">③ Alignment Results</p>
+      <p class="card-title" data-i18n="align.step3">③ Alignment Results</p>
       <div class="action-btns">
-        <button class="action-btn copy" onclick="copyResult()">⧉ Copy</button>
-        <button class="action-btn download" onclick="downloadResult()">⬇ Download</button>
+        <button class="action-btn copy" onclick="copyResult()" data-i18n="align.copy">⧉ Copy</button>
+        <button class="action-btn download" onclick="downloadResult()" data-i18n="align.download">⬇ Download</button>
       </div>
     </div>
     <div class="stats-bar" id="stats-bar"></div>
@@ -104,8 +104,9 @@
 
 </main>
 
-<footer>Runs entirely in your browser — no data is ever uploaded to any server.</footer>
+<footer data-i18n="common.footer">Runs entirely in your browser — no data is ever uploaded to any server.</footer>
 
+<script src="../i18n.js"></script>
 <script src="alignment.js"></script>
 </body>
 </html>

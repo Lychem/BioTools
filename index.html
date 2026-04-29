@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BioTools — Biological Data Analysis Tools</title>
+  <title data-i18n="page.index">BioTools — Biological Data Analysis Tools</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -112,66 +112,67 @@
 
   <header>
     <h1>🧬 BioTools</h1>
-    <p>A collection of browser-based biological data analysis tools — no installation required.</p>
+    <p data-i18n="index.subtitle">A collection of browser-based biological data analysis tools — no installation required.</p>
   </header>
 
   <main>
-    <p class="section-title">Available Tools</p>
+    <p class="section-title" data-i18n="index.section">Available Tools</p>
     <div class="tools-grid">
 
       <a class="tool-card" href="protein-to-fasta/index.html">
         <div class="tool-icon">🔬</div>
-        <h2>Protein Structure → FASTA</h2>
-        <p>Upload a PDB or mmCIF file and extract the amino-acid sequence as FASTA. Supports one-line and multi-line output.</p>
-        <span class="tool-tag">Structure</span>
+        <h2 data-i18n="card.p2f.name">Protein Structure → FASTA</h2>
+        <p data-i18n="card.p2f.desc">Upload a PDB or mmCIF file and extract the amino-acid sequence as FASTA. Supports one-line and multi-line output.</p>
+        <span class="tool-tag" data-i18n="card.p2f.tag">Structure</span>
       </a>
 
       <a class="tool-card" href="cif-pdb-converter/index.html">
         <div class="tool-icon">🔄</div>
-        <h2>CIF ↔ PDB Converter</h2>
-        <p>Convert between mmCIF and PDB structure formats. Preserves atom coordinates, cell parameters, and symmetry information.</p>
-        <span class="tool-tag">Structure</span>
+        <h2 data-i18n="card.cifpdb.name">CIF ↔ PDB Converter</h2>
+        <p data-i18n="card.cifpdb.desc">Convert between mmCIF and PDB structure formats. Preserves atom coordinates, cell parameters, and symmetry information.</p>
+        <span class="tool-tag" data-i18n="card.cifpdb.tag">Structure</span>
       </a>
 
       <a class="tool-card" href="protein-viewer/index.html">
         <div class="tool-icon">🔭</div>
-        <h2>Protein Structure Viewer</h2>
-        <p>Visualize PDB and mmCIF protein structures in 3D interactively. Upload a local file or fetch any entry directly from RCSB PDB by ID.</p>
-        <span class="tool-tag">Visualization</span>
+        <h2 data-i18n="card.viewer.name">Protein Structure Viewer</h2>
+        <p data-i18n="card.viewer.desc">Visualize PDB and mmCIF protein structures in 3D interactively. Upload a local file or fetch any entry directly from RCSB PDB by ID.</p>
+        <span class="tool-tag" data-i18n="card.viewer.tag">Visualization</span>
       </a>
 
       <a class="tool-card" href="sequence-alignment/index.html">
         <div class="tool-icon">🔗</div>
-        <h2>Pairwise Sequence Alignment</h2>
-        <p>Align two protein sequences with Needleman-Wunsch (global) or Smith-Waterman (local) using BLOSUM62, PAM250, or custom scoring.</p>
-        <span class="tool-tag">Sequence</span>
+        <h2 data-i18n="card.align.name">Pairwise Sequence Alignment</h2>
+        <p data-i18n="card.align.desc">Align two protein sequences with Needleman-Wunsch (global) or Smith-Waterman (local) using BLOSUM62, PAM250, or custom scoring.</p>
+        <span class="tool-tag" data-i18n="card.align.tag">Sequence</span>
       </a>
 
       <a class="tool-card" href="msa-viewer/index.html">
         <div class="tool-icon">🔱</div>
-        <h2>Multiple Sequence Alignment</h2>
-        <p>Align multiple protein sequences using center-star progressive alignment with BLOSUM62. Visualize with Clustal, Taylor, hydrophobicity, or conservation color schemes.</p>
-        <span class="tool-tag">Sequence</span>
+        <h2 data-i18n="card.msa.name">Multiple Sequence Alignment</h2>
+        <p data-i18n="card.msa.desc">Align multiple protein sequences using center-star progressive alignment with BLOSUM62. Visualize with Clustal, Taylor, hydrophobicity, or conservation color schemes.</p>
+        <span class="tool-tag" data-i18n="card.msa.tag">Sequence</span>
       </a>
 
       <a class="tool-card" href="antibody-cdr/index.html">
         <div class="tool-icon">🔖</div>
-        <h2>Antibody CDR Annotator</h2>
-        <p>Identify CDR1/2/3 loops in VH/VL sequences using Kabat, Chothia, IMGT, Martin, or Contact numbering schemes. Fully client-side.</p>
-        <span class="tool-tag">Antibody</span>
+        <h2 data-i18n="card.cdr.name">Antibody CDR Annotator</h2>
+        <p data-i18n="card.cdr.desc">Identify CDR1/2/3 loops in VH/VL sequences using Kabat, Chothia, IMGT, Martin, or Contact numbering schemes. Fully client-side.</p>
+        <span class="tool-tag" data-i18n="card.cdr.tag">Antibody</span>
       </a>
 
       <a class="tool-card" href="protein-mutation/index.html">
         <div class="tool-icon">🔯</div>
-        <h2>Protein Mutation</h2>
-        <p>Number residues in protein sequences and introduce point mutations interactively (click-to-mutate) or via text notation (e.g. A20N,F54Y). Outputs mutated FASTA.</p>
-        <span class="tool-tag">Sequence</span>
+        <h2 data-i18n="card.mut.name">Protein Mutation</h2>
+        <p data-i18n="card.mut.desc">Number residues in protein sequences and introduce point mutations interactively (click-to-mutate) or via text notation (e.g. A20N,F54Y). Outputs mutated FASTA.</p>
+        <span class="tool-tag" data-i18n="card.mut.tag">Sequence</span>
       </a>
 
     </div>
   </main>
 
-  <footer>BioTools — runs entirely in your browser. No data is sent to any server.</footer>
+  <footer data-i18n="index.footer">BioTools — runs entirely in your browser. No data is sent to any server.</footer>
 
+  <script src="i18n.js"></script>
 </body>
 </html>
