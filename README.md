@@ -1,33 +1,137 @@
 # BioTools
 
-Browser-based biological data analysis tools — no installation required.
+Browser-based biological data analysis tools. No installation required.
 
-## Tools
+## Available Modules
 
-### 🔬 Protein Structure → FASTA (`protein-to-fasta/`)
+### 1. Protein Structure -> FASTA (`protein-to-fasta/`)
 
-Upload a PDB or mmCIF (`.cif`) file and extract the amino-acid sequence as FASTA.
+Convert structure files to FASTA sequences.
 
-**Features:**
-- Drag-and-drop or click-to-browse file upload (`.pdb`, `.cif`, `.ent`)
-- PDB parser: reads `SEQRES` records; falls back to `ATOM` Cα records
-- mmCIF parser: reads `_entity_poly` one-letter-code fields; maps entities to chains via `_struct_asym`
-- Standard 3-letter → 1-letter amino acid conversion (including common non-standard residues)
-- Two output formats: **one-line FASTA** or **multi-line FASTA** (60 chars/line)
-- Per-chain residue count, copy-to-clipboard, and `.fasta` download
-- Runs entirely in your browser — **no data is sent to any server**
+Features:
+- Upload via drag-and-drop or file browser (`.pdb`, `.cif`, `.ent`)
+- Choose sequence source:
+	- Structure-derived
+	- Author-annotated
+- Choose FASTA output format:
+	- One-line FASTA
+	- Multi-line FASTA
+- View conversion stats and chain-level output
+- Copy FASTA output
+- Download `.fasta`
 
-### 🔭 Protein Structure Viewer (`protein-viewer/`)
+### 2. CIF <-> PDB Converter (`cif-pdb-converter/`)
 
-Upload a PDB or mmCIF file, or enter a PDB ID to fetch from RCSB, and explore the 3D structure interactively.
+Convert between mmCIF and PDB formats directly in the browser.
 
-**Features:**
-- Drag-and-drop or click-to-browse file upload (`.pdb`, `.cif`, `.mmcif`, `.ent`)
-- Fetch any structure directly from [RCSB PDB](https://www.rcsb.org/) by PDB ID (e.g. `1CRN`, `4HHB`)
-- Interactive 3D viewer powered by [Mol*](https://molstar.org/) (WebGL, runs fully client-side)
-- Rotate, zoom, and pan; built-in representations (cartoon, ball-and-stick, surface, etc.)
-- Runs entirely in your browser — **no data is sent to any server**
+Features:
+- Upload via drag-and-drop or file browser (`.pdb`, `.cif`, `.ent`, `.mmcif`)
+- Automatic conversion-direction detection from uploaded file
+- Conversion status/output panel
+- Copy converted text output
+- Download converted file
+
+### 3. Protein Structure Viewer (`protein-viewer/`)
+
+Interactive 3D structure visualization.
+
+Features:
+- Two input modes:
+	- Upload local structure file (`.pdb`, `.cif`, `.mmcif`, `.ent`)
+	- Fetch by PDB ID from RCSB
+- One-click visualize action
+- 3D viewer panel (Mol*)
+- Optional contact-map panel with:
+	- C-alpha cutoff slider
+	- Map type selection (contact map / distance map)
+- Built-in example PDB IDs in the UI for quick loading
+
+### 4. Pairwise Sequence Alignment (`sequence-alignment/`)
+
+Align two protein sequences with configurable scoring.
+
+Features:
+- Two sequence inputs (FASTA or raw amino acids)
+- Custom sequence names
+- Example-sequence loader
+- Algorithm selection:
+	- Global (Needleman-Wunsch)
+	- Local (Smith-Waterman)
+- Scoring options:
+	- BLOSUM62
+	- PAM250
+	- Simple match/mismatch mode
+- Gap open and gap extension parameters
+- Result panel with alignment statistics
+- Copy result and download alignment output
+
+### 5. Multiple Sequence Alignment (`msa-viewer/`)
+
+Align and visualize multiple protein sequences.
+
+Features:
+- FASTA input area (minimum 2 sequences)
+- Example loader and clear action
+- Adjustable alignment parameters:
+	- Gap open penalty
+	- Gap extension penalty
+- Color-scheme options:
+	- Clustal
+	- Taylor
+	- Hydrophobicity
+	- Conservation
+	- None (monochrome)
+- Progress indicator during alignment
+- Alignment results table
+- Download FASTA and copy output
+
+### 6. Antibody CDR Annotator (`antibody-cdr/`)
+
+Annotate antibody CDR regions from VH/VL sequences.
+
+Features:
+- Single-sequence input (FASTA or raw)
+- Chain type options:
+	- Auto-detect
+	- VH
+	- VL-kappa
+	- VL-lambda
+- Numbering scheme selection:
+	- Kabat
+	- IMGT
+- Example loader
+- Results in multiple tabs:
+	- Annotated sequence
+	- CDR table
+	- Numbered alignment
+- Copy CDRs as FASTA
+- Download TSV
+- Powered by immunum in-browser
+
+### 7. Protein Mutation (`protein-mutation/`)
+
+Introduce point mutations on protein sequences and export mutated FASTA.
+
+Features:
+- Input one or more FASTA sequences
+- Number and display sequences for editing
+- Example loader
+- Two mutation workflows:
+	- Interactive mode (click residues to mutate)
+	- Text notation mode (for example: `A20N,F54Y`)
+- Select target sequence in text mode
+- Apply mutations and reset all mutations
+- Mutated sequence summary/output panel
+- Copy mutated FASTA
+- Download mutated FASTA
+
+## Internationalization
+
+The pages use shared i18n labels and include a language switcher (English / Chinese).
 
 ## Usage
 
-Open `index.html` in any modern browser (or serve the directory with a local web server).
+Open `index.html` in a modern browser.
+You can also serve the repository with a local static web server.
+
+All modules are designed to run client-side in the browser.
