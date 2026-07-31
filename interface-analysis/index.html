@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="page.iface">Interface Analysis | BioTools</title>
+  <link rel="stylesheet" href="interface.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <p class="breadcrumb"><a href="../index.html">🍀 BioTools</a> › <span data-i18n="nav.iface">Interface Analysis</span></p>
+      <h1 data-i18n="iface.h1">🔗 Protein Interface Analysis</h1>
+      <p data-i18n="iface.subtitle">Analyze protein-protein interfaces: detect interaction types, identify epitope/paratope residues, and compute buried surface area (ΔSASA).</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ① Upload -->
+    <div class="card">
+      <p class="card-title" data-i18n="iface.step1">① Upload Structure File</p>
+
+      <div id="drop-zone">
+        <div class="dz-icon">📂</div>
+        <p class="dz-primary" data-i18n="common.dz.primary">Drag &amp; drop your PDB or CIF file here</p>
+        <p class="dz-secondary" data-i18n="common.dz.secondary">or click the button below to browse</p>
+        <p class="dz-file-name" id="file-name-display"></p>
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()" data-i18n="common.browse">Browse file</button>
+        <input type="file" id="file-input" accept=".pdb,.cif,.ent,.mmcif" />
+      </div>
+    </div>
+
+    <!-- ② Options -->
+    <div class="card" id="options-card">
+      <p class="card-title" data-i18n="iface.step2">② Interface Options</p>
+
+      <p class="option-subtitle" data-i18n="iface.chains-detected">Chains detected</p>
+      <div class="chain-list" id="chain-selector"></div>
+
+      <p class="option-subtitle" data-i18n="iface.define">Interface definition</p>
+      <div class="iface-input-row">
+        <input type="text" class="iface-input" id="interface-def"
+          placeholder="e.g. A-B or A,B-C" value=""
+          data-i18n-placeholder="iface.placeholder" />
+      </div>
+      <p class="iface-hint" data-i18n="iface.hint">Define which chains form the interface. Use "-" or "/" to separate the two sides, and "," for multiple chains on one side. Examples: <code>A-B</code>, <code>HL-A</code>, <code>A,B-C</code></p>
+
+      <p class="option-subtitle" data-i18n="iface.threshold">Distance threshold (Å)</p>
+      <div class="threshold-wrap">
+        <input type="range" id="threshold-input" min="2.5" max="8.0" step="0.1" value="5.0" />
+        <span class="thr-val" id="threshold-val">5.0</span>
+      </div>
+      <p class="iface-hint" data-i18n="iface.threshold.hint">Any two residue pair with closest heavy-atom distance ≤ this value is considered a contact. Typical values: 4.0–6.0 Å.</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box"></div>
+
+    <!-- ③ Analyze -->
+    <button id="analyze-btn" disabled onclick="analyze()" data-i18n="iface.analyze">③ Analyze Interface</button>
+
+    <!-- ④ Output -->
+    <div class="card" id="output-section">
+      <div class="output-header">
+        <p class="card-title" data-i18n="iface.step4">④ Analysis Results</p>
+        <div class="output-actions">
+          <button class="action-btn tsv" onclick="exportTSV()" data-i18n="iface.dl-tsv">⬇ Download TSV</button>
+          <button class="action-btn csv" onclick="exportCSV()" data-i18n="iface.dl-csv">⬇ Download CSV</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="summary" onclick="switchTab('summary')" data-i18n="iface.tab.summary">Summary</button>
+        <button class="tab-btn" data-tab="table" onclick="switchTab('table')" data-i18n="iface.tab.table">Contact Table</button>
+        <button class="tab-btn" data-tab="epitope" onclick="switchTab('epitope')" data-i18n="iface.tab.epitope">Epitope / Paratope</button>
+      </div>
+
+      <!-- Summary Tab -->
+      <div class="tab-panel active" id="tab-summary">
+        <div id="summary-content"></div>
+      </div>
+
+      <!-- Table Tab -->
+      <div class="tab-panel" id="tab-table">
+        <div id="table-content"></div>
+      </div>
+
+      <!-- Epitope/Paratope Tab -->
+      <div class="tab-panel" id="tab-epitope">
+        <div class="epitope-section">
+          <div class="residue-section">
+            <p class="res-section-label" id="paratope-chain-label">Paratope</p>
+            <div id="paratope-content"></div>
+          </div>
+          <div class="residue-section">
+            <p class="res-section-label" id="epitope-chain-label">Epitope</p>
+            <div id="epitope-content"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer data-i18n="common.footer">Runs entirely in your browser — no data is ever uploaded to any server.</footer>
+
+  <script src="../i18n.js"></script>
+  <script src="interface.js"></script>
+
+</body>
+</html>

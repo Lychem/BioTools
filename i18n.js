@@ -47,6 +47,7 @@
       'page.msa':     'Multiple Sequence Alignment | BioTools',
       'page.cdr':     'Antibody CDR Annotator | BioTools',
       'page.mut':     'Protein Mutation | BioTools',
+      'page.iface':   'Interface Analysis | BioTools',
 
       /* breadcrumb page names */
       'nav.p2f':    'Protein Structure \u2192 FASTA',
@@ -56,6 +57,7 @@
       'nav.msa':    'Multiple Sequence Alignment',
       'nav.cdr':    'Antibody CDR Annotator',
       'nav.mut':    'Protein Mutation',
+      'nav.iface':  'Interface Analysis',
 
       /* common */
       'common.browse':   'Browse file',
@@ -101,6 +103,10 @@
       'card.mut.name': 'Protein Mutation',
       'card.mut.desc': 'Number residues in protein sequences and introduce point mutations interactively (click-to-mutate) or via text notation (e.g. A20N,F54Y). Outputs mutated FASTA.',
       'card.mut.tag':  'Sequence',
+
+      'card.iface.name': 'Interface Analysis',
+      'card.iface.desc': 'Analyze protein-protein interfaces: detect hydrogen bonds, salt bridges, hydrophobic, pi-stacking, pi-cation interactions. Compute buried surface area (\u0394SASA) and identify epitope/paratope residues.',
+      'card.iface.tag':  'Structure',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
       'p2f.h1':          '\ud83d\udd2c Protein Structure \u2192 FASTA',
@@ -239,7 +245,26 @@
       'mut.popup.title': 'Mutate residue',
       'mut.popup.cancel': 'Cancel',
       'mut.mut-ph':     'A20N,F54Y',
-      'mut.seq-ph':     '>SequenceName\nMKTAYIAKQRQISFVK...'
+      'mut.seq-ph':     '>SequenceName\nMKTAYIAKQRQISFVK...',
+
+      /* ── Interface Analysis ───────────────────────────────────── */
+      'iface.h1':       '\ud83d\udd17 Protein Interface Analysis',
+      'iface.subtitle': 'Analyze protein-protein interfaces: detect interaction types, identify epitope/paratope residues, and compute buried surface area (\u0394SASA).',
+      'iface.step1':    '\u2460 Upload Structure File',
+      'iface.step2':    '\u2461 Interface Options',
+      'iface.chains-detected': 'Chains detected',
+      'iface.define':   'Interface definition',
+      'iface.placeholder': 'e.g. A-B or A,B-C',
+      'iface.hint':     'Define which chains form the interface. Use "-" or "/" to separate the two sides, and "," for multiple chains on one side. Examples: <code>A-B</code>, <code>HL-A</code>, <code>A,B-C</code>',
+      'iface.threshold': 'Distance threshold (\u00c5)',
+      'iface.threshold.hint': 'Any two residue pair with closest heavy-atom distance \u2264 this value is considered a contact. Typical values: 4.0\u20136.0 \u00c5.',
+      'iface.analyze':  '\u2462 Analyze Interface',
+      'iface.step4':    '\u2463 Analysis Results',
+      'iface.dl-tsv':   '\u2b07 Download TSV',
+      'iface.dl-csv':   '\u2b07 Download CSV',
+      'iface.tab.summary': 'Summary',
+      'iface.tab.table':   'Contact Table',
+      'iface.tab.epitope': 'Epitope / Paratope',
     },
 
     zh: {
@@ -252,6 +277,7 @@
       'page.msa':     '\u591a\u5e8f\u5217\u6bd4\u5bf9 | BioTools',
       'page.cdr':     '\u6297\u4f53 CDR \u6807\u6ce8\u5668 | BioTools',
       'page.mut':     '\u86cb\u767d\u8d28\u7a81\u53d8 | BioTools',
+      'page.iface':   '\u754c\u9762\u5206\u6790 | BioTools',
 
       /* breadcrumb page names */
       'nav.p2f':    '\u86cb\u767d\u8d28\u7ed3\u6784 \u2192 FASTA',
@@ -261,6 +287,7 @@
       'nav.msa':    '\u591a\u5e8f\u5217\u6bd4\u5bf9',
       'nav.cdr':    '\u6297\u4f53 CDR \u6807\u6ce8\u5668',
       'nav.mut':    '\u86cb\u767d\u8d28\u7a81\u53d8',
+      'nav.iface':  '\u754c\u9762\u5206\u6790',
 
       /* common */
       'common.browse':   '\u6d4f\u89c8\u6587\u4ef6',
@@ -306,6 +333,10 @@
       'card.mut.name': '\u86cb\u767d\u8d28\u7a81\u53d8',
       'card.mut.desc': '\u5bf9\u86cb\u767d\u8d28\u5e8f\u5217\u4e2d\u7684\u6b8b\u57fa\u8fdb\u884c\u7f16\u53f7\uff0c\u5e76\u901a\u8fc7\u4ea4\u4e92\u70b9\u51fb\u6216\u6587\u672c\u7b26\u53f7\uff08\u5982 A20N,F54Y\uff09\u5f15\u5165\u70b9\u7a81\u53d8\u3002\u8f93\u51fa\u7a81\u53d8\u540e\u7684 FASTA\u3002',
       'card.mut.tag':  '\u5e8f\u5217',
+
+      'card.iface.name': '\u754c\u9762\u5206\u6790',
+      'card.iface.desc': '\u5206\u6790\u86cb\u767d\u8d28-\u86cb\u767d\u8d28\u754c\u9762\uff1a\u68c0\u6d4b\u6c22\u952e\u3001\u76d0\u6865\u3001\u758f\u6c34\u3001\u03c0-\u03c0\u5806\u53e0\u3001\u03c0-\u9633\u79bb\u5b50\u7b49\u76f8\u4e92\u4f5c\u7528\u3002\u8ba1\u7b97\u57cb\u846c\u8868\u9762\u79ef\uff08\u0394SASA\uff09\u5e76\u8bc6\u522b\u8868\u4f4d/\u5bf9\u4f4d\u6b8b\u57fa\u3002',
+      'card.iface.tag':  '\u7ed3\u6784',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
       'p2f.h1':          '\ud83d\udd2c \u86cb\u767d\u8d28\u7ed3\u6784 \u2192 FASTA',
@@ -443,7 +474,26 @@
       'mut.popup.title': '\u7a81\u53d8\u6b8b\u57fa',
       'mut.popup.cancel': '\u53d6\u6d88',
       'mut.mut-ph':     'A20N,F54Y',
-      'mut.seq-ph':     '>SequenceName\nMKTAYIAKQRQISFVK...'
+      'mut.seq-ph':     '>SequenceName\nMKTAYIAKQRQISFVK...',
+
+      /* ── Interface Analysis ───────────────────────────────────── */
+      'iface.h1':       '\ud83d\udd17 \u86cb\u767d\u8d28\u754c\u9762\u5206\u6790',
+      'iface.subtitle': '\u5206\u6790\u86cb\u767d\u8d28-\u86cb\u767d\u8d28\u754c\u9762\uff1a\u68c0\u6d4b\u76f8\u4e92\u4f5c\u7528\u7c7b\u578b\uff0c\u8bc6\u522b\u8868\u4f4d/\u5bf9\u4f4d\u6b8b\u57fa\uff0c\u8ba1\u7b97\u57cb\u846c\u8868\u9762\u79ef\uff08\u0394SASA\uff09\u3002',
+      'iface.step1':    '\u2460 \u4e0a\u4f20\u7ed3\u6784\u6587\u4ef6',
+      'iface.step2':    '\u2461 \u754c\u9762\u9009\u9879',
+      'iface.chains-detected': '\u68c0\u6d4b\u5230\u7684\u94fe',
+      'iface.define':   '\u754c\u9762\u5b9a\u4e49',
+      'iface.placeholder': '\u4f8b\u5982 A-B \u6216 A,B-C',
+      'iface.hint':     '\u5b9a\u4e49\u54ea\u4e9b\u94fe\u6784\u6210\u754c\u9762\u3002\u4f7f\u7528 "-" \u6216 "/" \u5206\u9694\u4e24\u4fa7\uff0c\u4f7f\u7528 "," \u8868\u793a\u540c\u4e00\u4fa7\u591a\u6761\u94fe\u3002\u4f8b\u5982\uff1a<code>A-B</code>\u3001<code>HL-A</code>\u3001<code>A,B-C</code>',
+      'iface.threshold': '\u8ddd\u79bb\u9608\u503c (\u00c5)',
+      'iface.threshold.hint': '\u4efb\u610f\u4e24\u4e2a\u6b8b\u57fa\u95f4\u6700\u8fd1\u91cd\u539f\u5b50\u8ddd\u79bb \u2264 \u6b64\u503c\u5219\u89c6\u4e3a\u63a5\u89e6\u3002\u5178\u578b\u503c\uff1a4.0\u20136.0 \u00c5\u3002',
+      'iface.analyze':  '\u2462 \u5206\u6790\u754c\u9762',
+      'iface.step4':    '\u2463 \u5206\u6790\u7ed3\u679c',
+      'iface.dl-tsv':   '\u2b07 \u4e0b\u8f7d TSV',
+      'iface.dl-csv':   '\u2b07 \u4e0b\u8f7d CSV',
+      'iface.tab.summary': '\u6458\u8981',
+      'iface.tab.table':   '\u63a5\u89e6\u8868',
+      'iface.tab.epitope': '\u8868\u4f4d / \u5bf9\u4f4d',
     }
   };
 
