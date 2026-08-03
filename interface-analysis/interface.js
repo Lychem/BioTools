@@ -381,25 +381,13 @@ function classifyInteraction(resA, resB, atomsA, atomsB, threshold) {
       (a.name === 'OD1' || a.name === 'OD2' || a.name === 'OE1' || a.name === 'OE2'));
     const posAtoms = (aPos ? atomsA : atomsB).filter(a =>
       (a.name === 'NH1' || a.name === 'NH2' || a.name === 'NE' || a.name === 'NZ' || a.name === 'ND1' || a.name === 'NE2'));
-    const saltDist = minAtomDist(negAtoms, posAtoms);
-    if (saltDist !== null && saltDist <= 4.0) {
-      types.push({ type: 'Salt Bridge', dist: saltDist });
+    const saltR = minAtomDistWithAtoms(negAtoms, posAtoms);
+    if (saltR !== null && saltR.dist <= 4.0) {
+      types.push({ type: 'Salt Bridge', dist: saltR.dist, atomA: saltR.atomA.name, atomB: saltR.atomB.name });
     }
   }
 
   // 2. Hydrogen bond
-  const donorsAll = [], acceptorsAll = [];
-  for (const a of atomsA) {
-    const nm = a.name.trim();
-    if (HBOND_DONORS[nm]) donorsAll.push(a);
-    if (HBOND_ACCEPTORS[nm]) acceptorsAll.push(a);
-  }
-  for (const a of atomsB) {
-    const nm = a.name.trim();
-    if (HBOND_DONORS[nm]) donorsAll.push(a);
-    if (HBOND_ACCEPTORS[nm]) acceptorsAll.push(a);
-  }
-
   // Cross-check donors from A with acceptors from B, and vice versa
   const dA = [], aA = [], dB = [], aB = [];
   for (const a of atomsA) {
@@ -414,16 +402,17 @@ function classifyInteraction(resA, resB, atomsA, atomsB, threshold) {
   }
 
   let hbDist = Infinity;
+  let hbAtomA = null, hbAtomB = null;
   for (const donor of dA) for (const acc of aB) {
     const dd = dist(donor, acc);
-    if (dd < hbDist) hbDist = dd;
+    if (dd < hbDist) { hbDist = dd; hbAtomA = donor.name; hbAtomB = acc.name; }
   }
   for (const donor of dB) for (const acc of aA) {
     const dd = dist(donor, acc);
-    if (dd < hbDist) hbDist = dd;
+    if (dd < hbDist) { hbDist = dd; hbAtomA = acc.name; hbAtomB = donor.name; }
   }
   if (hbDist <= 3.5) {
-    types.push({ type: 'Hydrogen Bond', dist: hbDist });
+    types.push({ type: 'Hydrogen Bond', dist: hbDist, atomA: hbAtomA, atomB: hbAtomB });
   }
 
   // 3. Pi-stacking (aromatic-aromatic)
@@ -431,9 +420,9 @@ function classifyInteraction(resA, resB, atomsA, atomsB, threshold) {
   const scB = resB._scAtoms || (resB._ca ? [resB._ca] : []);
   const aromA = AROMATIC.has(rnA), aromB = AROMATIC.has(rnB);
   if (aromA && aromB) {
-    const piDist = minAtomDist(scA, scB);
-    if (piDist !== null && piDist <= 5.5) {
-      types.push({ type: 'Pi-Stacking', dist: piDist });
+    const piR = minAtomDistWithAtoms(scA, scB);
+    if (piR !== null && piR.dist <= 5.5) {
+      types.push({ type: 'Pi-Stacking', dist: piR.dist, atomA: piR.atomA.name, atomB: piR.atomB.name });
     }
   }
 
@@ -441,25 +430,25 @@ function classifyInteraction(resA, resB, atomsA, atomsB, threshold) {
   if ((aromA && POSITIVE.has(rnB)) || (aromB && POSITIVE.has(rnA))) {
     const aromAtoms = aromA ? scA : scB;
     const catAtoms = POSITIVE.has(rnA) ? scA : scB;
-    const catDist = minAtomDist(aromAtoms, catAtoms);
-    if (catDist !== null && catDist <= 6.0) {
-      types.push({ type: 'Pi-Cation', dist: catDist });
+    const catR = minAtomDistWithAtoms(aromAtoms, catAtoms);
+    if (catR !== null && catR.dist <= 6.0) {
+      types.push({ type: 'Pi-Cation', dist: catR.dist, atomA: catR.atomA.name, atomB: catR.atomB.name });
     }
   }
 
   // 5. Hydrophobic
   if (HYDROPHOBIC_RES.has(rnA) && HYDROPHOBIC_RES.has(rnB)) {
-    const hydDist = minAtomDist(scA, scB);
-    if (hydDist !== null && hydDist <= 5.0) {
-      types.push({ type: 'Hydrophobic', dist: hydDist });
+    const hydR = minAtomDistWithAtoms(scA, scB);
+    if (hydR !== null && hydR.dist <= 5.0) {
+      types.push({ type: 'Hydrophobic', dist: hydR.dist, atomA: hydR.atomA.name, atomB: hydR.atomB.name });
     }
   }
 
   // 6. Van der Waals (fallback, if any atom pair within threshold)
   if (types.length === 0) {
-    const vdwDist = minAtomDist(atomsA, atomsB);
-    if (vdwDist !== null && vdwDist <= threshold) {
-      types.push({ type: 'van der Waals', dist: vdwDist });
+    const vdwR = minAtomDistWithAtoms(atomsA, atomsB);
+    if (vdwR !== null && vdwR.dist <= threshold) {
+      types.push({ type: 'van der Waals', dist: vdwR.dist, atomA: vdwR.atomA.name, atomB: vdwR.atomB.name });
     }
   }
 
@@ -476,6 +465,19 @@ function minAtomDist(atoms1, atoms2) {
     }
   }
   return best === Infinity ? null : best;
+}
+
+function minAtomDistWithAtoms(atoms1, atoms2) {
+  if (!atoms1.length || !atoms2.length) return null;
+  let best = Infinity;
+  let bestA = null, bestB = null;
+  for (const a of atoms1) {
+    for (const b of atoms2) {
+      const d = dist(a, b);
+      if (d < best) { best = d; bestA = a; bestB = b; }
+    }
+  }
+  return best === Infinity ? null : { dist: best, atomA: bestA, atomB: bestB };
 }
 
 function minResDist(res1, res2) {
@@ -954,9 +956,10 @@ function renderTableBody() {
     const pair = rows[i];
     const labelA = residueLabel(pair.resA, pair.chainA);
     const labelB = residueLabel(pair.resB, pair.chainB);
-    const intTypes = pair.interactions.map(it =>
-      `<span class="int-tag int-${it.type.toLowerCase().replace(/\s+/g,'-')}">${it.type}</span>`
-    ).join('');
+    const intTypes = pair.interactions.map(it => {
+      const atomInfo = it.atomA && it.atomB ? ` (${it.atomA}–${it.atomB})` : '';
+      return `<span class="int-tag int-${it.type.toLowerCase().replace(/\s+/g,'-')}">${it.type}${atomInfo}</span>`;
+    }).join('');
 
     html += `<tr>
       <td>${i + 1}</td>
