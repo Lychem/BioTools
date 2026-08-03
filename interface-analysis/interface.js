@@ -361,7 +361,7 @@ function dist(a, b) {
 
 function residueLabel(res, chainId) {
   const aa1 = AA3TO1[res.resName.toUpperCase()] || 'X';
-  return `${aa1}${res.resNum}${res.insCode}`;
+  return `${chainId}:${aa1}${res.resNum}${res.insCode}`;
 }
 
 /* ================================================================
