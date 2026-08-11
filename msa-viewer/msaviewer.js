@@ -152,137 +152,9 @@ function nwAlignCorrect(seqA, seqB, gapOpen, gapExtend) {
 }
 
 /* ================================================================
-   CENTER-STAR MSA
+   DISPLAY CHUNK SIZE (residues per line)
 ================================================================ */
-function centerStarMSA(sequences, gapOpen, gapExtend) {
-  const n = sequences.length;
-
-  // Step 1: all pairwise scores to find center
-  const scores = new Array(n).fill(0);
-  const pairAligns = {}; // "i,j" -> {alignedA, alignedB}
-
-  // We'll do n*(n-1)/2 pairwise alignments
-  let totalPairs = n * (n - 1) / 2;
-  let done = 0;
-
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const res = nwAlignCorrect(sequences[i].seq, sequences[j].seq, gapOpen, gapExtend);
-      scores[i] += res.score;
-      scores[j] += res.score;
-      pairAligns[`${i},${j}`] = res;
-      done++;
-    }
-  }
-
-  // Step 2: find center (highest sum score)
-  let centerIdx = 0;
-  for (let i = 1; i < n; i++) {
-    if (scores[i] > scores[centerIdx]) centerIdx = i;
-  }
-
-  // Step 3: get pairwise alignments of center vs each other sequence
-  // Each gives us aligned_center_k and aligned_other_k
-  const pairwisePairs = []; // [{ac, ao, otherIdx}] for each non-center
-  for (let k = 0; k < n; k++) {
-    if (k === centerIdx) continue;
-    let ac, ao;
-    const key1 = `${centerIdx},${k}`;
-    const key2 = `${k},${centerIdx}`;
-    if (pairAligns[key1]) { ac = pairAligns[key1].alignedA; ao = pairAligns[key1].alignedB; }
-    else                  { ac = pairAligns[key2].alignedB; ao = pairAligns[key2].alignedA; }
-    pairwisePairs.push({ ac, ao, otherIdx: k });
-  }
-
-  // Step 4: star alignment merging
-  const centerSeq = sequences[centerIdx].seq;
-  const L = centerSeq.length; // original center length
-
-  // For each pairwise alignment k, compute:
-  //   gapsBefore[k][i] = number of gap chars in ac_k before original center position i
-  //   otherCharsAt[k][i] = chars from ao_k that align with gaps before position i (insertions)
-  //   otherCharAt[k][i] = the ao_k character at original center position i
-
-  // maxGapsAt[i] = max over all k of gapsBefore[k][i]
-  const maxGapsAt = new Int32Array(L + 1).fill(0);
-
-  const parsedPairs = pairwisePairs.map(({ ac, ao, otherIdx }) => {
-    // Parse the pairwise alignment to extract, for each original center position i:
-    // - the gap string from ao before position i
-    // - the character in ao at position i
-    const gapsBeforePos = new Int32Array(L + 1).fill(0);  // gapsBeforePos[i] = gaps in ac before center char i
-    const aoCharsBeforePos = [];  // aoCharsBeforePos[i] = ao chars while ac has gaps before center char i
-    const aoCharAtPos = new Array(L).fill('-'); // ao character paired with center char at pos i
-
-    for (let i = 0; i <= L; i++) aoCharsBeforePos.push([]);
-
-    let centerPos = 0; // next original center residue index (0..L)
-    let gapCount = 0;
-    const aoGapsBuf = [];
-
-    for (let p = 0; p < ac.length; p++) {
-      if (ac[p] === '-') {
-        // gap in center: ao advances
-        gapCount++;
-        aoGapsBuf.push(ao[p]);
-      } else {
-        // ac[p] is an original center residue
-        gapsBeforePos[centerPos] = gapCount;
-        aoCharsBeforePos[centerPos] = aoGapsBuf.slice();
-        aoCharAtPos[centerPos] = ao[p];
-        centerPos++;
-        gapCount = 0;
-        aoGapsBuf.length = 0;
-      }
-    }
-    // trailing gaps (after last center residue = position L)
-    gapsBeforePos[L] = gapCount;
-    aoCharsBeforePos[L] = aoGapsBuf.slice();
-
-    // Update maxGapsAt
-    for (let i = 0; i <= L; i++) {
-      if (gapsBeforePos[i] > maxGapsAt[i]) maxGapsAt[i] = gapsBeforePos[i];
-    }
-
-    return { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx };
-  });
-
-  // Step 5: Build the merged MSA rows
-  // Total alignment length:
-  let alignLen = 0;
-  for (let i = 0; i <= L; i++) alignLen += maxGapsAt[i];
-  alignLen += L;
-
-  // Build aligned row for center sequence
-  const centerRow = [];
-  for (let i = 0; i <= L; i++) {
-    const g = maxGapsAt[i];
-    for (let x = 0; x < g; x++) centerRow.push('-');
-    if (i < L) centerRow.push(centerSeq[i]);
-  }
-
-  // Build aligned row for each non-center sequence
-  const rows = new Array(n);
-  rows[centerIdx] = centerRow.join('');
-
-  for (const { gapsBeforePos, aoCharsBeforePos, aoCharAtPos, otherIdx } of parsedPairs) {
-    const row = [];
-    for (let i = 0; i <= L; i++) {
-      const maxG = maxGapsAt[i];
-      const actualG = gapsBeforePos[i];
-      const aoChars = aoCharsBeforePos[i]; // chars from ao while ac has gap (length = actualG)
-      // Fill up to maxG characters
-      for (let x = 0; x < maxG; x++) {
-        if (x < actualG) row.push(aoChars[x]);
-        else             row.push('-');
-      }
-      if (i < L) row.push(aoCharAtPos[i]);
-    }
-    rows[otherIdx] = row.join('');
-  }
-
-  return { rows, centerIdx, alignLen };
-}
+const CHUNK_SIZE = 50;
 
 /* ================================================================
    COLOR SCHEMES
@@ -402,124 +274,137 @@ function renderMSA(rows, names, colStats, scheme) {
 
   const L = rows[0].length;
   const consensus = buildConsensus(rows, colStats);
+  const numChunks = Math.ceil(L / CHUNK_SIZE);
 
-  const fragment = document.createDocumentFragment();
-
-  // ── Column numbers row ─────────────────────────────────
-  const numRow = document.createElement('tr');
-  numRow.className = 'col-numbers';
-  const numNameTd = document.createElement('td');
-  numNameTd.className = 'name-cell';
-  numNameTd.textContent = '';
-  numRow.appendChild(numNameTd);
-
-  for (let j = 0; j < L; j++) {
-    const td = document.createElement('td');
-    const colNum = j + 1;
-    if (colNum % 10 === 0) {
-      td.textContent = colNum;
-      td.style.fontWeight = '700';
-      td.style.color = '#475569';
-    }
-    numRow.appendChild(td);
-  }
-  fragment.appendChild(numRow);
-
-  // ── Sequence rows ──────────────────────────────────────
-  rows.forEach((row, ri) => {
-    const tr = document.createElement('tr');
-    tr.className = 'seq-row';
-
-    const nameTd = document.createElement('td');
-    nameTd.className = 'name-cell';
-    nameTd.textContent = names[ri];
-    nameTd.title = names[ri];
-    tr.appendChild(nameTd);
-
-    for (let j = 0; j < L; j++) {
-      const ch = row[j];
-      const td = document.createElement('td');
-      td.className = 'res';
-      td.textContent = ch;
-
-      if (ch === '-') {
-        td.style.color = '#cbd5e1';
-        td.style.background = 'transparent';
-      } else {
-        let bg = '';
-        let fg = '#1e293b';
-        switch (scheme) {
-          case 'clustal':
-            bg = CLUSTAL_COLORS[ch] || '';
-            if (bg) fg = '#000';
-            break;
-          case 'taylor':
-            bg = TAYLOR_COLORS[ch] || '';
-            if (bg) fg = '#000';
-            break;
-          case 'hydrophobicity':
-            bg = hydroColor(ch);
-            break;
-          case 'conservation': {
-            const pct = colStats[j].pct;
-            bg = conservationColor(pct);
-            fg = conservationTextColor(pct);
-            break;
-          }
-          case 'none':
-          default:
-            bg = '';
-        }
-        if (bg) td.style.background = bg;
-        td.style.color = fg;
-      }
-
-      tr.appendChild(td);
-    }
-    fragment.appendChild(tr);
-  });
-
-  // ── Consensus row ──────────────────────────────────────
-  const consRow = document.createElement('tr');
-  consRow.className = 'seq-row consensus-row';
-  const consTd = document.createElement('td');
-  consTd.className = 'name-cell';
-  consTd.textContent = 'Consensus';
-  consRow.appendChild(consTd);
-
-  for (let j = 0; j < L; j++) {
-    const ch = consensus[j];
+  function buildResidueCell(ch, j) {
     const td = document.createElement('td');
     td.className = 'res';
     td.textContent = ch;
-    td.style.color = ch === '*' ? '#1d4ed8' : ch === '+' ? '#2563eb' : ch === '.' ? '#93c5fd' : '#e2e8f0';
-    td.style.background = 'transparent';
-    consRow.appendChild(td);
-  }
-  fragment.appendChild(consRow);
 
-  // ── Conservation bar row ───────────────────────────────
-  const barRow = document.createElement('tr');
-  barRow.className = 'cons-bar';
-  const barNameTd = document.createElement('td');
-  barNameTd.className = 'name-cell';
-  barRow.appendChild(barNameTd);
-
-  for (let j = 0; j < L; j++) {
-    const td = document.createElement('td');
-    td.className = 'bar-cell';
-    const pct = colStats[j].pct;
-    const t = pct / 100;
-    const r = Math.round(30 + (239 - 30) * (1 - t));
-    const g = Math.round(64 + (246 - 64) * (1 - t));
-    const b = Math.round(175 + (255 - 175) * (1 - t));
-    // Actually let's use the same conservation color
-    td.style.background = conservationColor(pct);
-    td.style.height = `${Math.max(2, Math.round(pct / 100 * 8))}px`;
-    td.style.verticalAlign = 'bottom';
-    barRow.appendChild(td);
+    if (ch === '-') {
+      td.style.color = '#cbd5e1';
+      td.style.background = 'transparent';
+    } else {
+      let bg = '';
+      let fg = '#1e293b';
+      switch (scheme) {
+        case 'clustal':
+          bg = CLUSTAL_COLORS[ch] || '';
+          if (bg) fg = '#000';
+          break;
+        case 'taylor':
+          bg = TAYLOR_COLORS[ch] || '';
+          if (bg) fg = '#000';
+          break;
+        case 'hydrophobicity':
+          bg = hydroColor(ch);
+          break;
+        case 'conservation': {
+          const pct = colStats[j].pct;
+          bg = conservationColor(pct);
+          fg = conservationTextColor(pct);
+          break;
+        }
+        case 'none':
+        default:
+          bg = '';
+      }
+      if (bg) td.style.background = bg;
+      td.style.color = fg;
+    }
+    return td;
   }
-  fragment.appendChild(barRow);
+
+  const fragment = document.createDocumentFragment();
+
+  for (let chunk = 0; chunk < numChunks; chunk++) {
+    const start = chunk * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, L);
+
+    // ── Inter-chunk spacer ──────────────────────────────
+    if (chunk > 0) {
+      const spacerRow = document.createElement('tr');
+      spacerRow.className = 'chunk-spacer';
+      const spacerTd = document.createElement('td');
+      spacerTd.colSpan = (end - start) + 1;
+      spacerRow.appendChild(spacerTd);
+      fragment.appendChild(spacerRow);
+    }
+
+    // ── Column numbers row ─────────────────────────────
+    const numRow = document.createElement('tr');
+    numRow.className = 'col-numbers';
+    const numNameTd = document.createElement('td');
+    numNameTd.className = 'name-cell';
+    numNameTd.textContent = '';
+    numRow.appendChild(numNameTd);
+
+    for (let j = start; j < end; j++) {
+      const td = document.createElement('td');
+      const colNum = j + 1;
+      if (colNum % 10 === 0) {
+        td.textContent = colNum;
+        td.style.fontWeight = '700';
+        td.style.color = '#475569';
+      }
+      numRow.appendChild(td);
+    }
+    fragment.appendChild(numRow);
+
+    // ── Sequence rows (this chunk only) ─────────────────
+    rows.forEach((row, ri) => {
+      const tr = document.createElement('tr');
+      tr.className = 'seq-row';
+
+      const nameTd = document.createElement('td');
+      nameTd.className = 'name-cell';
+      nameTd.textContent = names[ri];
+      nameTd.title = names[ri];
+      tr.appendChild(nameTd);
+
+      for (let j = start; j < end; j++) {
+        tr.appendChild(buildResidueCell(row[j], j));
+      }
+      fragment.appendChild(tr);
+    });
+
+    // ── Consensus row ──────────────────────────────────
+    const consRow = document.createElement('tr');
+    consRow.className = 'seq-row consensus-row';
+    const consTd = document.createElement('td');
+    consTd.className = 'name-cell';
+    consTd.textContent = 'Consensus';
+    consRow.appendChild(consTd);
+
+    for (let j = start; j < end; j++) {
+      const ch = consensus[j];
+      const td = document.createElement('td');
+      td.className = 'res';
+      td.textContent = ch;
+      td.style.color = ch === '*' ? '#1d4ed8' : ch === '+' ? '#2563eb' : ch === '.' ? '#93c5fd' : '#e2e8f0';
+      td.style.background = 'transparent';
+      consRow.appendChild(td);
+    }
+    fragment.appendChild(consRow);
+
+    // ── Conservation bar row ───────────────────────────
+    const barRow = document.createElement('tr');
+    barRow.className = 'cons-bar';
+    const barNameTd = document.createElement('td');
+    barNameTd.className = 'name-cell';
+    barRow.appendChild(barNameTd);
+
+    for (let j = start; j < end; j++) {
+      const td = document.createElement('td');
+      td.className = 'bar-cell';
+      const pct = colStats[j].pct;
+      td.style.background = conservationColor(pct);
+      td.style.height = `${Math.max(2, Math.round(pct / 100 * 8))}px`;
+      td.style.verticalAlign = 'bottom';
+      barRow.appendChild(td);
+    }
+    fragment.appendChild(barRow);
+  }
 
   table.appendChild(fragment);
 }

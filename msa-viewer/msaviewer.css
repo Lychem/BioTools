@@ -232,7 +232,6 @@ main {
 
 /* ── MSA Table wrapper ───────────────────────────────── */
 .msa-wrapper {
-  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
@@ -242,7 +241,13 @@ main {
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1;
-  white-space: nowrap;
+}
+
+.msa-table tr.chunk-spacer td {
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 /* Column number header row */
