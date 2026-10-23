@@ -134,14 +134,17 @@ Features:
 - Sequence rendered in wrapped blocks of 60 residues with a numbered ruler
 - Drag across the sequence to select a single residue or a fragment
 - Append multiple annotation rows
+- Add multiple fragments/parts to each row
 - Per-row options:
-	- Custom color
 	- Track label
-	- Start/end positions
-	- Text displayed on the annotation bar
 	- Show/hide visibility toggle
 	- Delete
-- Use the current selection to set a row range
+- Per-fragment options:
+	- Custom color
+	- Start/end positions
+	- Text displayed on the annotation bar
+	- Delete
+- Use the current selection to set a fragment range
 - Save the annotated figure as a high-resolution PNG
 - Fully client-side, with no external libraries or network requests
 

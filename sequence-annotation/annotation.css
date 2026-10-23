@@ -271,16 +271,37 @@ main {
   border-style: dashed;
 }
 
-.ann-row-top,
-.ann-row-bottom {
+.ann-row-top {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.ann-row-bottom { margin-top: 6px; }
+.ann-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
-.ann-color {
+.fragments {
+  margin-top: 10px;
+}
+
+.fragment-row {
+  padding: 8px;
+  margin-top: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.fragment-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.frag-color {
   flex: 0 0 auto;
   width: 34px;
   height: 30px;
@@ -291,17 +312,33 @@ main {
   cursor: pointer;
 }
 
-.ann-label,
-.ann-note {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.ann-start,
-.ann-end {
+.frag-start,
+.frag-end {
   flex: 0 0 auto;
   width: 56px;
   text-align: center;
+}
+
+.frag-text {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.empty-fragments {
+  padding: 10px;
+  margin-top: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--slate);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.add-fragment-btn {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .range-sep {

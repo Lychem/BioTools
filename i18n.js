@@ -111,7 +111,7 @@
       'card.iface.tag':  'Structure',
 
       'card.anno.name': 'Sequence Annotation',
-      'card.anno.desc': 'Annotate residues or peptide fragments with colored, labelled rows. Add notes, append multiple tracks, and export the figure as a high-resolution PNG.',
+      'card.anno.desc': 'Annotate residues or peptide fragments with colored, labelled rows. Add multiple fragments per track and export the figure as a high-resolution PNG.',
       'card.anno.tag':  'Sequence',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
@@ -284,15 +284,17 @@
       'anno.clear':    'Clear',
       'anno.annotations': 'Annotation Rows',
       'anno.add-row':  '+ Add Row',
+      'anno.add-fragment': '+ Add Fragment',
+      'anno.no-fragments': 'No fragments yet. Select a region and click \u201cAdd Fragment\u201d.',
       'anno.clear-selection': 'Clear Selection',
       'anno.hover':    'Hover over a residue to see its position.',
-      'anno.hint':     'Drag across the sequence to select a residue or fragment. Then click \u201cAdd Row\u201d to annotate the selection. Each row can be edited below.',
+      'anno.hint':     'Drag across the sequence to select a residue or fragment. Add rows for different annotation tracks, then add one or more fragments to each row.',
       'anno.empty':    'No annotation rows yet. Select a region and click \u201cAdd Row\u201d.',
       'anno.figure':   'Annotated Sequence',
       'anno.save-png': '\u2b07 Save PNG',
       'anno.canvas-hint': 'Drag across residues to select a range. The saved PNG does not include selection highlights.',
       'anno.track-label': 'Track label',
-      'anno.note':     'Text on bar (optional)',
+      'anno.fragment-text': 'Fragment label',
     },
 
     zh: {
@@ -369,7 +371,7 @@
       'card.iface.tag':  '\u7ed3\u6784',
 
       'card.anno.name': '\u5e8f\u5217\u6807\u6ce8',
-      'card.anno.desc': '\u4e3a\u6b8b\u57fa\u6216\u80bd\u6bb5\u6dfb\u52a0\u5f69\u8272\u6807\u6ce8\u884c\u548c\u6587\u5b57\u8bf4\u660e\uff0c\u652f\u6301\u8ffd\u52a0\u591a\u4e2a\u6807\u6ce8\u884c\uff0c\u5e76\u5bfc\u51fa\u4e3a\u9ad8\u5206\u8fa8\u7387 PNG \u56fe\u7247\u3002',
+      'card.anno.desc': '\u4e3a\u6b8b\u57fa\u6216\u80bd\u6bb5\u6dfb\u52a0\u5f69\u8272\u6807\u6ce8\u884c\u548c\u6587\u5b57\u8bf4\u660e\uff0c\u652f\u6301\u5728\u6bcf\u884c\u4e2d\u6dfb\u52a0\u591a\u4e2a\u7247\u6bb5\uff0c\u5e76\u5bfc\u51fa\u4e3a\u9ad8\u5206\u8fa8\u7387 PNG \u56fe\u7247\u3002',
       'card.anno.tag':  '\u5e8f\u5217',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
@@ -541,15 +543,17 @@
       'anno.clear':    '\u6e05\u9664',
       'anno.annotations': '\u6807\u6ce8\u884c',
       'anno.add-row':  '+ \u6dfb\u52a0\u884c',
+      'anno.add-fragment': '+ \u6dfb\u52a0\u7247\u6bb5',
+      'anno.no-fragments': '\u8fd8\u6ca1\u6709\u7247\u6bb5\u3002\u9009\u62e9\u4e00\u4e2a\u533a\u57df\u540e\u70b9\u51fb\u201c\u6dfb\u52a0\u7247\u6bb5\u201d\u3002',
       'anno.clear-selection': '\u6e05\u9664\u9009\u62e9',
       'anno.hover':    '\u5c06\u9f20\u6807\u60ac\u505c\u5728\u6b8b\u57fa\u4e0a\u4ee5\u67e5\u770b\u5176\u4f4d\u7f6e\u3002',
-      'anno.hint':     '\u5728\u5e8f\u5217\u4e0a\u62d6\u52a8\u4ee5\u9009\u62e9\u6b8b\u57fa\u6216\u7247\u6bb5\uff0c\u7136\u540e\u70b9\u51fb\u201c\u6dfb\u52a0\u884c\u201d\u4e3a\u6240\u9009\u533a\u57df\u6dfb\u52a0\u6807\u6ce8\u3002\u6bcf\u884c\u5747\u53ef\u5728\u4e0b\u65b9\u7f16\u8f91\u3002',
+      'anno.hint':     '\u5728\u5e8f\u5217\u4e0a\u62d6\u52a8\u4ee5\u9009\u62e9\u6b8b\u57fa\u6216\u7247\u6bb5\u3002\u6dfb\u52a0\u4e0d\u540c\u7684\u6807\u6ce8\u884c\uff0c\u7136\u540e\u4e3a\u6bcf\u884c\u6dfb\u52a0\u4e00\u4e2a\u6216\u591a\u4e2a\u7247\u6bb5\u3002',
       'anno.empty':    '\u8fd8\u6ca1\u6709\u6807\u6ce8\u884c\u3002\u9009\u62e9\u4e00\u4e2a\u533a\u57df\u540e\u70b9\u51fb\u201c\u6dfb\u52a0\u884c\u201d\u3002',
       'anno.figure':   '\u6807\u6ce8\u540e\u7684\u5e8f\u5217',
       'anno.save-png': '\u2b07 \u4fdd\u5b58 PNG',
       'anno.canvas-hint': '\u5728\u6b8b\u57fa\u4e0a\u62d6\u52a8\u4ee5\u9009\u62e9\u8303\u56f4\u3002\u4fdd\u5b58\u7684 PNG \u4e0d\u4f1a\u5305\u542b\u9009\u62e9\u9ad8\u4eae\u3002',
       'anno.track-label': '\u6807\u6ce8\u540d\u79f0',
-      'anno.note':     '\u6761\u4e0a\u6587\u5b57\uff08\u53ef\u9009\uff09',
+      'anno.fragment-text': '\u7247\u6bb5\u540d\u79f0',
     }
   };
 

@@ -24,9 +24,19 @@
   const EXAMPLE_SEQ = '>Ubiquitin\nMQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG';
 
   const EXAMPLE_ANNOTATIONS = [
-    { label: 'Ubiquitin fold', start: 1, end: 76, color: '#3b82f6', note: 'Ubiquitin-like fold' },
-    { label: 'K48 linkage', start: 48, end: 48, color: '#ef4444', note: 'K48' },
-    { label: 'C-terminal tail', start: 72, end: 76, color: '#10b981', note: 'LRGG motif' }
+    {
+      label: 'Ubiquitin fold',
+      fragments: [
+        { start: 1, end: 76, color: '#3b82f6', text: 'Ubiquitin-like fold' }
+      ]
+    },
+    {
+      label: 'Sites & motifs',
+      fragments: [
+        { start: 48, end: 48, color: '#ef4444', text: 'K48' },
+        { start: 72, end: 76, color: '#10b981', text: 'LRGG motif' }
+      ]
+    }
   ];
 
   const state = {
@@ -35,6 +45,7 @@
     annotations: [],
     selection: null,
     nextId: 1,
+    nextFragId: 1,
     layout: null,
     drag: null
   };
@@ -210,27 +221,27 @@
     };
   }
 
-  function drawTrackNote(ctx, ann, x1, x2, yMid, seqLeft, blockWidth) {
+  function drawFragmentText(ctx, text, color, x1, x2, yMid, seqLeft, blockWidth) {
     const gap = 4;
     const barW = x2 - x1;
     ctx.font = NOTE_FONT;
-    const textW = ctx.measureText(ann.note).width;
+    const textW = ctx.measureText(text).width;
 
     if (textW + 8 <= barW) {
-      ctx.fillStyle = contrastColor(ann.color);
+      ctx.fillStyle = contrastColor(color);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(ann.note, x1 + barW / 2, yMid);
+      ctx.fillText(text, x1 + barW / 2, yMid);
       return;
     }
 
     if (barW >= 36) {
-      const txt = fitText(ctx, ann.note, barW - 8);
-      if (txt) {
-        ctx.fillStyle = contrastColor(ann.color);
+      const fitted = fitText(ctx, text, barW - 8);
+      if (fitted) {
+        ctx.fillStyle = contrastColor(color);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(txt, x1 + barW / 2, yMid);
+        ctx.fillText(fitted, x1 + barW / 2, yMid);
       }
       return;
     }
@@ -238,24 +249,24 @@
     const blockRight = seqLeft + blockWidth;
     const availRight = blockRight - x2 - gap;
     if (availRight >= Math.min(textW, 28)) {
-      const txt = fitText(ctx, ann.note, availRight);
-      if (txt) {
+      const fitted = fitText(ctx, text, availRight);
+      if (fitted) {
         ctx.fillStyle = '#334155';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(txt, x2 + gap, yMid);
+        ctx.fillText(fitted, x2 + gap, yMid);
       }
       return;
     }
 
     const availLeft = x1 - gap - seqLeft;
     if (availLeft > 0) {
-      const txt = fitText(ctx, ann.note, availLeft);
-      if (txt) {
+      const fitted = fitText(ctx, text, availLeft);
+      if (fitted) {
         ctx.fillStyle = '#334155';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(txt, x1 - gap, yMid);
+        ctx.fillText(fitted, x1 - gap, yMid);
       }
     }
   }
@@ -338,17 +349,19 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(fitText(ctx, ann.label || '', LABEL_W), PAD + LABEL_W, top + TRACK_H / 2);
 
-        const s = Math.max(ann.start, block.start);
-        const e = Math.min(ann.end, block.end);
-        if (s > e) return;
+        ann.fragments.forEach(function (frag) {
+          const s = Math.max(frag.start, block.start);
+          const e = Math.min(frag.end, block.end);
+          if (s > e) return;
 
-        const x1 = seqLeft + (s - block.start) * CELL_W;
-        const x2 = seqLeft + (e - block.start + 1) * CELL_W;
-        drawRoundedBar(ctx, x1, y1, x2 - x1, TRACK_BAR_H, ann.color || '#3b82f6', s === ann.start, e === ann.end);
+          const x1 = seqLeft + (s - block.start) * CELL_W;
+          const x2 = seqLeft + (e - block.start + 1) * CELL_W;
+          drawRoundedBar(ctx, x1, y1, x2 - x1, TRACK_BAR_H, frag.color || '#3b82f6', s === frag.start, e === frag.end);
 
-        if (ann.note && s === ann.start) {
-          drawTrackNote(ctx, ann, x1, x2, y1 + TRACK_BAR_H / 2, seqLeft, blockWidth);
-        }
+          if (frag.text && s === frag.start) {
+            drawFragmentText(ctx, frag.text, frag.color, x1, x2, y1 + TRACK_BAR_H / 2, seqLeft, blockWidth);
+          }
+        });
       });
     });
 
@@ -386,10 +399,12 @@
       return;
     }
     const blocks = Math.max(1, Math.ceil(len / BLOCK));
-    const visible = state.annotations.filter(function (a) { return a.visible !== false; }).length;
+    const visibleRows = state.annotations.filter(function (a) { return a.visible !== false; });
+    const fragmentCount = visibleRows.reduce(function (sum, a) { return sum + a.fragments.length; }, 0);
     const blockText = blocks === 1 ? tr(' block', ' \u6bb5') : tr(' blocks', ' \u6bb5');
-    const rowText = visible === 1 ? tr(' visible row', ' \u6761\u53ef\u89c1\u6807\u6ce8') : tr(' visible rows', ' \u6761\u53ef\u89c1\u6807\u6ce8');
-    els.figureMeta.textContent = len + ' aa \u00b7 ' + blocks + blockText + ' \u00b7 ' + visible + rowText;
+    const rowText = visibleRows.length === 1 ? tr(' visible row', ' \u6761\u53ef\u89c1\u6807\u6ce8') : tr(' visible rows', ' \u6761\u53ef\u89c1\u6807\u6ce8');
+    const fragText = fragmentCount === 1 ? tr(' fragment', ' \u4e2a\u7247\u6bb5') : tr(' fragments', ' \u4e2a\u7247\u6bb5');
+    els.figureMeta.textContent = len + ' aa \u00b7 ' + blocks + blockText + ' \u00b7 ' + visibleRows.length + rowText + ' \u00b7 ' + fragmentCount + fragText;
   }
 
   function updateSelectionUI() {
@@ -511,23 +526,107 @@
     }
   }
 
+  function makeFragment(start, end, color) {
+    return {
+      id: state.nextFragId++,
+      start: start,
+      end: end,
+      color: color,
+      text: ''
+    };
+  }
+
+  function buildFragmentRow(ann, frag) {
+    const fragRow = mk('div', 'fragment-row');
+    fragRow.dataset.fragId = frag.id;
+
+    const line = mk('div', 'fragment-line');
+
+    const color = mk('input', 'frag-color', { type: 'color', title: tr('Color', '\u989c\u8272') });
+    color.value = frag.color;
+    color.addEventListener('input', function () {
+      frag.color = color.value;
+      scheduleRender();
+    });
+    line.appendChild(color);
+
+    const start = mk('input', 'frag-start', { type: 'number', min: '1', step: '1', title: tr('Start', '\u8d77\u70b9') });
+    start.value = frag.start;
+    start.max = String(state.seq.length);
+    start.addEventListener('change', function () {
+      let v = parseInt(start.value, 10);
+      if (!Number.isFinite(v)) v = frag.start;
+      v = Math.max(1, Math.min(v, frag.end, state.seq.length));
+      frag.start = v;
+      start.value = v;
+      renderCanvas();
+    });
+    line.appendChild(start);
+
+    line.appendChild(mk('span', 'range-sep', { text: '\u2013' }));
+
+    const end = mk('input', 'frag-end', { type: 'number', min: '1', step: '1', title: tr('End', '\u7ec8\u70b9') });
+    end.value = frag.end;
+    end.max = String(state.seq.length);
+    end.addEventListener('change', function () {
+      let v = parseInt(end.value, 10);
+      if (!Number.isFinite(v)) v = frag.end;
+      v = Math.max(frag.start, Math.min(v, state.seq.length));
+      frag.end = v;
+      end.value = v;
+      renderCanvas();
+    });
+    line.appendChild(end);
+
+    const useSel = mk('button', 'icon-btn frag-use-sel', { type: 'button', title: tr('Use current selection', '\u4f7f\u7528\u5f53\u524d\u9009\u62e9') });
+    useSel.textContent = '\u2316';
+    useSel.addEventListener('click', function () {
+      if (!state.selection) return;
+      frag.start = state.selection.start;
+      frag.end = state.selection.end;
+      start.value = frag.start;
+      end.value = frag.end;
+      renderCanvas();
+    });
+    line.appendChild(useSel);
+
+    const remove = mk('button', 'icon-btn danger frag-delete', { type: 'button', title: tr('Remove fragment', '\u5220\u9664\u7247\u6bb5') });
+    remove.textContent = '\uD83D\uDDD1';
+    remove.addEventListener('click', function () {
+      const i = ann.fragments.indexOf(frag);
+      if (i >= 0) ann.fragments.splice(i, 1);
+      rebuildRows();
+      renderCanvas();
+    });
+    line.appendChild(remove);
+
+    fragRow.appendChild(line);
+
+    const text = mk('input', 'frag-text', {
+      type: 'text',
+      placeholder: 'Fragment label',
+      title: tr('Fragment label', '\u7247\u6bb5\u540d\u79f0'),
+      'data-i18n-placeholder': 'anno.fragment-text'
+    });
+    text.value = frag.text;
+    text.addEventListener('input', function () {
+      frag.text = text.value;
+      scheduleRender();
+    });
+    fragRow.appendChild(text);
+
+    return fragRow;
+  }
+
   function rebuildRows() {
     els.rowsContainer.innerHTML = '';
     els.emptyRows.style.display = state.annotations.length ? 'none' : 'block';
 
     state.annotations.forEach(function (ann) {
       const row = mk('div', 'ann-row' + (ann.visible === false ? ' hidden-row' : ''));
-      row.dataset.id = ann.id;
+      row.dataset.rowId = ann.id;
 
       const top = mk('div', 'ann-row-top');
-
-      const color = mk('input', 'ann-color', { type: 'color', title: tr('Color', '\u989c\u8272') });
-      color.value = ann.color;
-      color.addEventListener('input', function () {
-        ann.color = color.value;
-        scheduleRender();
-      });
-      top.appendChild(color);
 
       const label = mk('input', 'ann-label', {
         type: 'text',
@@ -566,87 +665,75 @@
       });
       top.appendChild(del);
 
-      const bottom = mk('div', 'ann-row-bottom');
+      const fragments = mk('div', 'fragments');
 
-      const start = mk('input', 'ann-start', { type: 'number', min: '1', step: '1', title: tr('Start', '\u8d77\u70b9') });
-      start.value = ann.start;
-      start.max = String(state.seq.length);
-      start.addEventListener('change', function () {
-        let v = parseInt(start.value, 10);
-        if (!Number.isFinite(v)) v = ann.start;
-        v = Math.max(1, Math.min(v, ann.end, state.seq.length));
-        ann.start = v;
-        start.value = v;
-        renderCanvas();
+      ann.fragments.forEach(function (frag) {
+        fragments.appendChild(buildFragmentRow(ann, frag));
       });
-      bottom.appendChild(start);
 
-      bottom.appendChild(mk('span', 'range-sep', { text: '\u2013' }));
+      const emptyMsg = mk('div', 'empty-fragments', {
+        'data-i18n': 'anno.no-fragments',
+        text: 'No fragments yet. Select a region and click \u201cAdd Fragment\u201d.'
+      });
+      emptyMsg.style.display = ann.fragments.length ? 'none' : 'block';
+      fragments.appendChild(emptyMsg);
 
-      const end = mk('input', 'ann-end', { type: 'number', min: '1', step: '1', title: tr('End', '\u7ec8\u70b9') });
-      end.value = ann.end;
-      end.max = String(state.seq.length);
-      end.addEventListener('change', function () {
-        let v = parseInt(end.value, 10);
-        if (!Number.isFinite(v)) v = ann.end;
-        v = Math.max(ann.start, Math.min(v, state.seq.length));
-        ann.end = v;
-        end.value = v;
-        renderCanvas();
+      const addBtn = mk('button', 'btn btn-secondary add-fragment-btn', {
+        type: 'button',
+        'data-i18n': 'anno.add-fragment',
+        text: '+ Add Fragment'
       });
-      bottom.appendChild(end);
-
-      const useSel = mk('button', 'icon-btn ann-use-sel', { type: 'button', title: tr('Use current selection', '\u4f7f\u7528\u5f53\u524d\u9009\u62e9') });
-      useSel.textContent = '\u2316';
-      useSel.addEventListener('click', function () {
-        if (!state.selection) return;
-        ann.start = state.selection.start;
-        ann.end = state.selection.end;
-        start.value = ann.start;
-        end.value = ann.end;
-        renderCanvas();
+      addBtn.addEventListener('click', function () {
+        addFragment(ann);
       });
-      bottom.appendChild(useSel);
-
-      const note = mk('input', 'ann-note', {
-        type: 'text',
-        placeholder: 'Text on bar (optional)',
-        title: tr('Text on bar (optional)', '\u6761\u4e0a\u6587\u5b57\uff08\u53ef\u9009\uff09'),
-        'data-i18n-placeholder': 'anno.note'
-      });
-      note.value = ann.note;
-      note.addEventListener('input', function () {
-        ann.note = note.value;
-        scheduleRender();
-      });
-      bottom.appendChild(note);
+      fragments.appendChild(addBtn);
 
       row.appendChild(top);
-      row.appendChild(bottom);
+      row.appendChild(fragments);
       els.rowsContainer.appendChild(row);
     });
 
     refreshI18n();
   }
 
+  function addFragment(ann) {
+    if (!state.seq) return;
+    const sel = state.selection;
+    const color = PALETTE[(state.nextFragId - 1) % PALETTE.length];
+    const frag = makeFragment(sel ? sel.start : 1, sel ? sel.end : state.seq.length, color);
+    ann.fragments.push(frag);
+    rebuildRows();
+    renderCanvas();
+    requestAnimationFrame(function () {
+      const row = els.rowsContainer.querySelector('[data-frag-id="' + frag.id + '"]');
+      if (!row) return;
+      row.scrollIntoView({ block: 'nearest' });
+      const input = row.querySelector('.frag-text');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+
   function addRow() {
     if (!state.seq) return;
     const n = state.nextId++;
-    const sel = state.selection;
     const ann = {
       id: n,
       label: tr('Annotation ', '\u6807\u6ce8 ') + n,
-      start: sel ? sel.start : 1,
-      end: sel ? sel.end : state.seq.length,
-      color: PALETTE[(n - 1) % PALETTE.length],
-      note: '',
-      visible: true
+      visible: true,
+      fragments: []
     };
+    if (state.selection) {
+      const color = PALETTE[(state.nextFragId - 1) % PALETTE.length];
+      ann.fragments.push(makeFragment(state.selection.start, state.selection.end, color));
+    }
     state.annotations.push(ann);
     rebuildRows();
     renderCanvas();
     requestAnimationFrame(function () {
-      const row = els.rowsContainer.querySelector('[data-id="' + ann.id + '"]');
+      const row = els.rowsContainer.querySelector('[data-row-id="' + ann.id + '"]');
       if (!row) return;
       row.scrollIntoView({ block: 'nearest' });
       const input = row.querySelector('.ann-label');
@@ -691,6 +778,7 @@
     state.annotations = [];
     state.selection = null;
     state.nextId = 1;
+    state.nextFragId = 1;
     state.drag = null;
     hoverPos = null;
 
@@ -709,11 +797,16 @@
       return {
         id: i + 1,
         label: a.label,
-        start: a.start,
-        end: a.end,
-        color: a.color,
-        note: a.note,
-        visible: true
+        visible: true,
+        fragments: a.fragments.map(function (f) {
+          return {
+            id: state.nextFragId++,
+            start: f.start,
+            end: f.end,
+            color: f.color,
+            text: f.text
+          };
+        })
       };
     });
     state.nextId = state.annotations.length + 1;
@@ -731,6 +824,7 @@
     state.annotations = [];
     state.selection = null;
     state.nextId = 1;
+    state.nextFragId = 1;
     state.drag = null;
     state.layout = null;
     els.workspace.style.display = 'none';
