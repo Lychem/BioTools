@@ -48,6 +48,7 @@
       'page.cdr':     'Antibody CDR Annotator | BioTools',
       'page.mut':     'Protein Mutation | BioTools',
       'page.iface':   'Interface Analysis | BioTools',
+      'page.anno':    'Sequence Annotation | BioTools',
 
       /* breadcrumb page names */
       'nav.p2f':    'Protein Structure \u2192 FASTA',
@@ -58,6 +59,7 @@
       'nav.cdr':    'Antibody CDR Annotator',
       'nav.mut':    'Protein Mutation',
       'nav.iface':  'Interface Analysis',
+      'nav.anno':   'Sequence Annotation',
 
       /* common */
       'common.browse':   'Browse file',
@@ -107,6 +109,10 @@
       'card.iface.name': 'Interface Analysis',
       'card.iface.desc': 'Analyze protein-protein interfaces: detect hydrogen bonds, salt bridges, hydrophobic, pi-stacking, pi-cation interactions. Compute buried surface area (\u0394SASA) and identify epitope/paratope residues.',
       'card.iface.tag':  'Structure',
+
+      'card.anno.name': 'Sequence Annotation',
+      'card.anno.desc': 'Annotate residues or peptide fragments with colored, labelled rows. Add notes, append multiple tracks, and export the figure as a high-resolution PNG.',
+      'card.anno.tag':  'Sequence',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
       'p2f.h1':          '\ud83d\udd2c Protein Structure \u2192 FASTA',
@@ -265,6 +271,28 @@
       'iface.tab.summary': 'Summary',
       'iface.tab.table':   'Contact Table',
       'iface.tab.epitope': 'Epitope / Paratope',
+
+      'anno.h1':       '\ud83c\udff7\ufe0f Sequence Annotation',
+      'anno.subtitle': 'Annotate residues or peptide fragments with colored, labelled rows and export the figure as an image.',
+      'anno.input':    'Sequence Input',
+      'anno.name':     'Sequence name (optional)',
+      'anno.name-ph':  'e.g. Ubiquitin',
+      'anno.seq-label': 'Sequence (FASTA or raw amino acids)',
+      'anno.seq-ph':   '>My_protein\nMKTAYIAKQRQISFVK...',
+      'anno.render':   'Render Sequence',
+      'anno.example':  'Load Example',
+      'anno.clear':    'Clear',
+      'anno.annotations': 'Annotation Rows',
+      'anno.add-row':  '+ Add Row',
+      'anno.clear-selection': 'Clear Selection',
+      'anno.hover':    'Hover over a residue to see its position.',
+      'anno.hint':     'Drag across the sequence to select a residue or fragment. Then click \u201cAdd Row\u201d to annotate the selection. Each row can be edited below.',
+      'anno.empty':    'No annotation rows yet. Select a region and click \u201cAdd Row\u201d.',
+      'anno.figure':   'Annotated Sequence',
+      'anno.save-png': '\u2b07 Save PNG',
+      'anno.canvas-hint': 'Drag across residues to select a range. The saved PNG does not include selection highlights.',
+      'anno.track-label': 'Track label',
+      'anno.note':     'Text on bar (optional)',
     },
 
     zh: {
@@ -278,6 +306,7 @@
       'page.cdr':     '\u6297\u4f53 CDR \u6807\u6ce8\u5668 | BioTools',
       'page.mut':     '\u86cb\u767d\u8d28\u7a81\u53d8 | BioTools',
       'page.iface':   '\u754c\u9762\u5206\u6790 | BioTools',
+      'page.anno':    '\u5e8f\u5217\u6807\u6ce8 | BioTools',
 
       /* breadcrumb page names */
       'nav.p2f':    '\u86cb\u767d\u8d28\u7ed3\u6784 \u2192 FASTA',
@@ -288,6 +317,7 @@
       'nav.cdr':    '\u6297\u4f53 CDR \u6807\u6ce8\u5668',
       'nav.mut':    '\u86cb\u767d\u8d28\u7a81\u53d8',
       'nav.iface':  '\u754c\u9762\u5206\u6790',
+      'nav.anno':   '\u5e8f\u5217\u6807\u6ce8',
 
       /* common */
       'common.browse':   '\u6d4f\u89c8\u6587\u4ef6',
@@ -337,6 +367,10 @@
       'card.iface.name': '\u754c\u9762\u5206\u6790',
       'card.iface.desc': '\u5206\u6790\u86cb\u767d\u8d28-\u86cb\u767d\u8d28\u754c\u9762\uff1a\u68c0\u6d4b\u6c22\u952e\u3001\u76d0\u6865\u3001\u758f\u6c34\u3001\u03c0-\u03c0\u5806\u53e0\u3001\u03c0-\u9633\u79bb\u5b50\u7b49\u76f8\u4e92\u4f5c\u7528\u3002\u8ba1\u7b97\u57cb\u846c\u8868\u9762\u79ef\uff08\u0394SASA\uff09\u5e76\u8bc6\u522b\u8868\u4f4d/\u5bf9\u4f4d\u6b8b\u57fa\u3002',
       'card.iface.tag':  '\u7ed3\u6784',
+
+      'card.anno.name': '\u5e8f\u5217\u6807\u6ce8',
+      'card.anno.desc': '\u4e3a\u6b8b\u57fa\u6216\u80bd\u6bb5\u6dfb\u52a0\u5f69\u8272\u6807\u6ce8\u884c\u548c\u6587\u5b57\u8bf4\u660e\uff0c\u652f\u6301\u8ffd\u52a0\u591a\u4e2a\u6807\u6ce8\u884c\uff0c\u5e76\u5bfc\u51fa\u4e3a\u9ad8\u5206\u8fa8\u7387 PNG \u56fe\u7247\u3002',
+      'card.anno.tag':  '\u5e8f\u5217',
 
       /* ── Protein Structure \u2192 FASTA ──────────────────────────── */
       'p2f.h1':          '\ud83d\udd2c \u86cb\u767d\u8d28\u7ed3\u6784 \u2192 FASTA',
@@ -494,6 +528,28 @@
       'iface.tab.summary': '\u6458\u8981',
       'iface.tab.table':   '\u63a5\u89e6\u8868',
       'iface.tab.epitope': '\u8868\u4f4d / \u5bf9\u4f4d',
+
+      'anno.h1':       '\ud83c\udff7\ufe0f \u5e8f\u5217\u6807\u6ce8',
+      'anno.subtitle': '\u4e3a\u6b8b\u57fa\u6216\u80bd\u6bb5\u6dfb\u52a0\u5f69\u8272\u6807\u6ce8\u884c\u3001\u6587\u5b57\u8bf4\u660e\uff0c\u5e76\u5c06\u56fe\u4fdd\u5b58\u4e3a\u56fe\u7247\u3002',
+      'anno.input':    '\u5e8f\u5217\u8f93\u5165',
+      'anno.name':     '\u5e8f\u5217\u540d\u79f0\uff08\u53ef\u9009\uff09',
+      'anno.name-ph':  '\u4f8b\u5982 Ubiquitin',
+      'anno.seq-label': '\u5e8f\u5217\uff08FASTA \u6216\u539f\u59cb\u6c28\u57fa\u9178\u5e8f\u5217\uff09',
+      'anno.seq-ph':   '>My_protein\nMKTAYIAKQRQISFVK...',
+      'anno.render':   '\u6e32\u67d3\u5e8f\u5217',
+      'anno.example':  '\u52a0\u8f7d\u793a\u4f8b',
+      'anno.clear':    '\u6e05\u9664',
+      'anno.annotations': '\u6807\u6ce8\u884c',
+      'anno.add-row':  '+ \u6dfb\u52a0\u884c',
+      'anno.clear-selection': '\u6e05\u9664\u9009\u62e9',
+      'anno.hover':    '\u5c06\u9f20\u6807\u60ac\u505c\u5728\u6b8b\u57fa\u4e0a\u4ee5\u67e5\u770b\u5176\u4f4d\u7f6e\u3002',
+      'anno.hint':     '\u5728\u5e8f\u5217\u4e0a\u62d6\u52a8\u4ee5\u9009\u62e9\u6b8b\u57fa\u6216\u7247\u6bb5\uff0c\u7136\u540e\u70b9\u51fb\u201c\u6dfb\u52a0\u884c\u201d\u4e3a\u6240\u9009\u533a\u57df\u6dfb\u52a0\u6807\u6ce8\u3002\u6bcf\u884c\u5747\u53ef\u5728\u4e0b\u65b9\u7f16\u8f91\u3002',
+      'anno.empty':    '\u8fd8\u6ca1\u6709\u6807\u6ce8\u884c\u3002\u9009\u62e9\u4e00\u4e2a\u533a\u57df\u540e\u70b9\u51fb\u201c\u6dfb\u52a0\u884c\u201d\u3002',
+      'anno.figure':   '\u6807\u6ce8\u540e\u7684\u5e8f\u5217',
+      'anno.save-png': '\u2b07 \u4fdd\u5b58 PNG',
+      'anno.canvas-hint': '\u5728\u6b8b\u57fa\u4e0a\u62d6\u52a8\u4ee5\u9009\u62e9\u8303\u56f4\u3002\u4fdd\u5b58\u7684 PNG \u4e0d\u4f1a\u5305\u542b\u9009\u62e9\u9ad8\u4eae\u3002',
+      'anno.track-label': '\u6807\u6ce8\u540d\u79f0',
+      'anno.note':     '\u6761\u4e0a\u6587\u5b57\uff08\u53ef\u9009\uff09',
     }
   };
 

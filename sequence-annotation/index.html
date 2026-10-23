@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="page.anno">Sequence Annotation | BioTools</title>
+  <link rel="stylesheet" href="annotation.css" />
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="breadcrumb">
+      <a href="../index.html">🍀 BioTools</a> › <span data-i18n="nav.anno">Sequence Annotation</span>
+    </div>
+    <h1 data-i18n="anno.h1">🏷️ Sequence Annotation</h1>
+    <p data-i18n="anno.subtitle">Annotate residues or peptide fragments with colored, labelled rows and export the figure as an image.</p>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-title" data-i18n="anno.input">Sequence Input</div>
+    <div class="input-head">
+      <label class="field-label" for="seq-name" data-i18n="anno.name">Sequence name (optional)</label>
+      <input id="seq-name" type="text" spellcheck="false" data-i18n-placeholder="anno.name-ph" placeholder="e.g. Ubiquitin" />
+    </div>
+    <label class="field-label" for="seq-input" data-i18n="anno.seq-label">Sequence (FASTA or raw amino acids)</label>
+    <textarea id="seq-input" spellcheck="false" data-i18n-placeholder="anno.seq-ph" placeholder=">My_protein&#10;MKTAYIAKQRQISFVK..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="render-btn" data-i18n="anno.render">Render Sequence</button>
+      <button class="btn btn-secondary" id="example-btn" data-i18n="anno.example">Load Example</button>
+      <button class="btn btn-ghost" id="clear-btn" data-i18n="anno.clear">Clear</button>
+    </div>
+    <div id="error-box" class="alert alert-error"></div>
+    <div id="warn-box" class="alert alert-warn"></div>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <div class="card" id="editor-card">
+      <div class="results-header">
+        <div class="card-title" data-i18n="anno.annotations">Annotation Rows</div>
+        <div class="action-btns">
+          <button class="btn btn-ghost" id="clear-selection-btn" data-i18n="anno.clear-selection">Clear Selection</button>
+          <button class="btn btn-secondary" id="add-row-btn" data-i18n="anno.add-row">+ Add Row</button>
+        </div>
+      </div>
+      <p class="hint" data-i18n="anno.hint">Drag across the sequence to select a residue or fragment. Then click “Add Row” to annotate the selection. Each row can be edited below.</p>
+      <div id="selection-info" class="selection-info"></div>
+      <div id="rows-container"></div>
+      <div id="empty-rows" class="empty-rows" data-i18n="anno.empty">No annotation rows yet. Select a region and click “Add Row”.</div>
+    </div>
+
+    <div class="card" id="figure-card">
+      <div class="results-header">
+        <div>
+          <div class="card-title" data-i18n="anno.figure">Annotated Sequence</div>
+          <div id="figure-meta" class="figure-meta"></div>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-primary" id="save-png-btn" data-i18n="anno.save-png">⬇ Save PNG</button>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="figure-canvas" class="figure-canvas"></canvas>
+      </div>
+      <div id="hover-info" class="hover-info" data-i18n="anno.hover">Hover over a residue to see its position.</div>
+      <p class="canvas-hint" data-i18n="anno.canvas-hint">Drag across residues to select a range. The saved PNG does not include selection highlights.</p>
+    </div>
+  </div>
+</main>
+
+<footer data-i18n="common.footer.branded">BioTools — runs entirely in your browser. No data is sent to any server.</footer>
+
+<script src="../i18n.js"></script>
+<script src="annotation.js"></script>
+</body>
+</html>
